@@ -1,0 +1,4 @@
+model,best_params,cv_scoring,cv_best_macro_f1,best_threshold,neg_recall,balanced_acc,macro_f1,accuracy
+LightGBM,"n_estimators=800, learning_rate=0.0587, num_leaves=39, max_depth=6, colsample_bytree=0.5186, min_child_samples=31",f1_macro,0.6454,0.59,0.660,0.650,0.598,0.644
+RandomForest,"n_estimators=200, max_depth=15, min_samples_split=10",f1_macro,0.6693,0.60,0.630,0.650,0.607,0.660
+XGBoost,"n_estimators=1000, learning_rate=0.05, max_depth=7, min_child_weight=1, gamma=0",f1_macro,0.6604,0.81,0.647,0.658,0.613,0.664
