@@ -14,11 +14,11 @@
 1. `preprocessed_final.ipynb`
 
    - 원천 CSV들을 병합하고 분석용 기본 데이터셋을 생성한다.
-   - 최종 산출물은 `data/merged_final_data.csv`다.
+   - 최종 산출물은 `data/processed/merged_final_data.csv`다.
 2. `eda_final.ipynb`
 
    - 전처리된 데이터를 기반으로 탐색적 분석을 수행한다.
-   - 모델링에 사용할 학습 기반 데이터셋 `data/merged_train_data.csv`를 생성한다.
+   - 모델링에 사용할 학습 기반 데이터셋 `data/processed/merged_train_data.csv`를 생성한다.
 3. `ml_classifier.ipynb`
 
    - 리뷰 점수를 긍정/부정으로 이진 분류한다.
@@ -184,10 +184,10 @@ order_purchase_timestamp
 
 | 파일                           | 생성 위치              | 의미                                                                         |
 | ------------------------------ | ---------------------- | ---------------------------------------------------------------------------- |
-| `data/merged_data.csv`       | 1차 병합 직후          | orders, customers, items, reviews, products, sellers를 붙인 원본 통합 데이터 |
-| `data/merged_final_data.csv` | 결측/파생/컬럼 정리 후 | EDA와 ML이 공통으로 사용하는 최종 분석 데이터                                |
-| `data/merged_train_data.csv` | EDA 노트북             | EDA 결과를 모델링으로 넘기기 위한 학습 후보 데이터                           |
-| `data/ml_data.csv`           | ML 노트북              | 모델링 직전 기준 데이터 스냅샷                                               |
+| `data/processed/merged_data.csv`       | 1차 병합 직후          | orders, customers, items, reviews, products, sellers를 붙인 원본 통합 데이터 |
+| `data/processed/merged_final_data.csv` | 결측/파생/컬럼 정리 후 | EDA와 ML이 공통으로 사용하는 최종 분석 데이터                                |
+| `data/processed/merged_train_data.csv` | EDA 노트북             | EDA 결과를 모델링으로 넘기기 위한 학습 후보 데이터                           |
+| `data/processed/ml_data.csv`           | ML 노트북              | 모델링 직전 기준 데이터 스냅샷                                               |
 
 `merged_final_data.csv` 최종 컬럼은 33개다.
 
@@ -516,7 +516,7 @@ Track A 모델 비교 결과:
 
 ## 14. CSV 파일 생성 이유와 각 파일의 의미
 
-### 14.1 `data/product_category_name_translation.csv`
+### 14.1 `data/raw/product_category_name_translation.csv`
 
 의미:
 
@@ -527,7 +527,7 @@ Track A 모델 비교 결과:
 - 카테고리명을 사람이 이해하기 쉬운 값으로 바꾸기 위해 필요하다.
 - `preprocessed_final.ipynb` 실행에 필요한 외부 참조 데이터였으므로 프로젝트 안의 `data` 폴더에 확보했다.
 
-### 14.2 `data/merged_final_data.csv`
+### 14.2 `data/processed/merged_final_data.csv`
 
 의미:
 
@@ -538,7 +538,7 @@ Track A 모델 비교 결과:
 - 매번 여러 원천 파일을 다시 조인하면 재현성과 실행 시간이 떨어진다.
 - EDA와 모델링이 동일한 출발 데이터를 사용하도록 고정된 중간 산출물이 필요하다.
 
-### 14.3 `data/merged_train_data.csv`
+### 14.3 `data/processed/merged_train_data.csv`
 
 의미:
 
@@ -549,7 +549,7 @@ Track A 모델 비교 결과:
 - EDA에서 확인한 분석 기준과 파생 컬럼을 모델링 단계로 전달하기 위해 필요하다.
 - `ml_classifier.ipynb`가 EDA 결과를 안정적으로 이어받을 수 있게 한다.
 
-### 14.4 `data/ml_data.csv`
+### 14.4 `data/processed/ml_data.csv`
 
 의미:
 
@@ -611,7 +611,7 @@ Track A 모델 비교 결과:
 
 - 필요한 원천 데이터 로드 흐름 확인
 - `product_category_name_translation.csv` 확보 후 전처리 실행 가능하도록 정리
-- `data/merged_final_data.csv` 생성 확인
+- `data/processed/merged_final_data.csv` 생성 확인
 
 판단 기준:
 
@@ -626,7 +626,7 @@ Track A 모델 비교 결과:
 - `delay_days` 부호와 해석 설명 수정
 - 인과처럼 보일 수 있는 표현을 완화
 - 리뷰 점수 차이에 대한 과도한 배수 표현 제거
-- `data/merged_train_data.csv` 생성 확인
+- `data/processed/merged_train_data.csv` 생성 확인
 
 판단 기준:
 
@@ -641,7 +641,7 @@ Track A 모델 비교 결과:
 - `lightgbm` 의존성 설치 및 `requirements.txt` 추가
 - `nbclient`, `nbformat`을 `requirements.txt`에 추가해 노트북 실행 검증 가능하도록 정리
 - `safe_divide` 추가
-- `data/ml_data.csv` 저장 시 `index=False` 적용
+- `data/processed/ml_data.csv` 저장 시 `index=False` 적용
 - 타깃 설명을 “CS 리스크 기준”으로 수정
 - 행 단위 split을 `order_id` 기준 group split으로 변경
 - 하이퍼파라미터 탐색 CV를 `StratifiedGroupKFold`로 변경
