@@ -1,4 +1,4 @@
-model,best_params,cv_scoring,cv_best_macro_f1,best_threshold,neg_recall,balanced_acc,macro_f1,accuracy
-LightGBM,"n_estimators=500, learning_rate=0.0148, num_leaves=46, max_depth=8, colsample_bytree=0.6798, min_child_samples=22",f1_macro,0.6443,0.57,0.631,0.636,0.591,0.639
-RandomForest,"n_estimators=300, max_depth=10, min_samples_split=5",f1_macro,0.6493,0.57,0.614,0.631,0.589,0.641
-XGBoost,"n_estimators=1000, learning_rate=0.05, max_depth=7, min_child_weight=3, gamma=0",f1_macro,0.6190,0.81,0.615,0.634,0.592,0.644
+model,best_params,cv_scoring,cv_best_macro_f1,best_threshold,neg_recall,balanced_acc,macro_f1,accuracy,cv_note
+LightGBM,"{'classifier__colsample_bytree': 0.6218455076693483, 'classifier__learning_rate': 0.014883605700319194, 'classifier__max_depth': 7, 'classifier__min_child_samples': 47, 'classifier__n_estimators': 800, 'classifier__num_leaves': 47}",f1_macro,0.6460623882943949,0.57,0.6245733788395904,0.636213616495393,0.5922545256971012,0.6424180327868853,refreshed with StratifiedGroupKFold(order_id groups)
+RandomForest,"{'classifier__max_depth': 10, 'classifier__min_samples_split': 2, 'classifier__n_estimators': 300}",f1_macro,0.6483904096607195,0.57,0.6233544612384203,0.6326337136134178,0.5881353643363354,0.6375796903460837,refreshed with StratifiedGroupKFold(order_id groups)
+XGBoost,"{'classifier__gamma': 0, 'classifier__learning_rate': 0.05, 'classifier__max_depth': 7, 'classifier__min_child_weight': 1, 'classifier__n_estimators': 1000}",f1_macro,0.6162671229353474,0.8199999999999996,0.613846903949293,0.6197483442960485,0.5748258921562905,0.622893897996357,refreshed with StratifiedGroupKFold(order_id groups)

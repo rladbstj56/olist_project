@@ -1,0 +1,7 @@
+{
+  "selected_track_a_model":"LightGBM",
+  "selected_track_a_threshold":0.57,
+  "track_b_best_params":"{'classifier__colsample_bytree': np.float64(0.5028265220878869), 'classifier__learning_rate': np.float64(0.011153121252070788), 'classifier__max_depth': 5, 'classifier__min_child_samples': 47, 'classifier__n_estimators': 800, 'classifier__num_leaves': 29}",
+  "track_b_cv_best_macro_f1":0.5761117986,
+  "track_b_best_threshold":0.53
+}
