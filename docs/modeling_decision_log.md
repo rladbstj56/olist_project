@@ -677,3 +677,17 @@ Track B는 주문 시점의 사전 예측 모델로 유지한다. 배송 완료 
 - `order_id` 기준 group split으로 같은 주문이 train과 test에 동시에 들어가는 leakage를 막았다.
 - 불균형 데이터에서 accuracy의 한계를 인식하고 `negative recall`, `balanced_accuracy`, `macro_f1`을 중심으로 모델을 선택했다.
 - Track A와 Track B를 분리해 “사후 설명”과 “사전 예측”이라는 서로 다른 비즈니스 문제를 명확히 구분했다.
+
+## 16. 회귀 모델의 최종 제외 판단
+
+초기에는 `review_score`를 1점부터 5점까지의 연속적인 점수처럼 예측하는 회귀 모델도 검토했다. 그러나 최종 모델에서는 회귀가 아니라 분류 모델을 유지했다.
+
+판단 기준은 다음과 같다.
+
+- `review_score`는 엄밀한 연속형 수치가 아니라 1점부터 5점까지의 순서형 별점이다.
+- 비즈니스 목적은 정확히 3.7점, 4.2점처럼 점수를 맞히는 것이 아니라, CS 개입이 필요한 부정 리뷰 위험 주문을 조기에 탐지하는 것이다.
+- 회귀 모델의 test 성능은 `RMSE 1.1886`, `MAE 0.9170`, `R2 0.2213` 수준이었다. 설명력이 낮아 최종 운영 모델로 제시하기 어렵다.
+- 반면 분류 모델은 부정 리뷰 recall, balanced accuracy, macro F1처럼 불균형 타겟에 맞는 지표로 성능을 평가할 수 있다.
+
+따라서 최종 실행 모델은 `notebooks/03_ml_classifier.ipynb`의 분류 모델로 유지한다. 회귀 노트북은 실험 기록과 비교 근거로만 보존하며, 현재 위치는 `archive/reference_models/04_ml_regressor.ipynb`다.
+

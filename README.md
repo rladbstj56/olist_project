@@ -12,7 +12,7 @@ olist_project/
 │   └── processed/          # 전처리 및 모델링용 생성 CSV
 ├── outputs/                # 모델 비교 및 검증 결과
 ├── docs/                   # 의사결정, 한계점, 대화 맥락 기록
-├── archive/                # 과거 팀 작업물과 중간 노트북
+├── archive/                # 과거 팀 작업물, 중간 노트북, 참고 모델
 ├── analytical_thinking/    # 부트캠프 학습 자료
 ├── script/                 # 발표 스크립트
 └── requirements.txt
@@ -23,7 +23,8 @@ olist_project/
 1. `notebooks/01_preprocessing.ipynb`
 2. `notebooks/02_eda.ipynb`
 3. `notebooks/03_ml_classifier.ipynb`
-4. `notebooks/04_ml_regressor.ipynb`
+
+최종 모델은 `03_ml_classifier.ipynb`의 분류 모델입니다. 최종 노트북은 프로젝트 루트를 자동으로 찾도록 구성되어 있어, `olist_project` 루트 또는 `notebooks/` 폴더에서 실행해도 같은 데이터를 참조합니다.
 
 ## Data Files
 
@@ -39,5 +40,6 @@ olist_project/
 
 - `archive/team_work/`: 팀원별 EDA, 전처리, ML 작업 과정
 - `archive/legacy_root_notebooks/`: 현재 최종 노트북의 조상 또는 중간본
+- `archive/reference_models/`: 최종 모델로 채택하지 않은 참고 모델
 
 최종 재현과 검토는 `notebooks/`, `data/`, `outputs/`, `docs/`를 기준으로 합니다.
