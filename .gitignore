@@ -1,0 +1,10 @@
+.DS_Store
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# Local agent/editor state
+.claude/
+
+# Excluded due to size and because this H&M analysis guide is not part of the final Olist project.
+analysis_guide/
