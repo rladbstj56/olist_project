@@ -41,7 +41,7 @@ Olist 데이터에서는 배송이 늦어질수록 리뷰 점수가 낮아지는
 
 ## 4. 분석 흐름
 
-최종 재현 기준 노트북은 `notebooks/` 폴더의 3개 파일입니다.
+최종 재현 기준은 `notebooks/` 폴더의 3개 노트북입니다. `archive/`는 팀 작업과 중간본을 보존하는 공간이며, 최종 검토 기준이 아닙니다.
 
 | 순서 | 노트북 | 역할 |
 | --- | --- | --- |
@@ -223,4 +223,4 @@ notebooks/01_preprocessing.ipynb
 - `archive/legacy_root_notebooks/`: 현재 최종 노트북의 조상 또는 중간본
 - `archive/reference_models/`: 최종 모델로 채택하지 않은 참고 모델
 
-최종 재현과 검토는 `notebooks/`, `data/`, `outputs/`, `docs/`를 기준으로 합니다.
+자세한 구분은 [archive/README.md](archive/README.md)에 정리했습니다. 최종 재현과 검토는 `notebooks/`, `data/`, `outputs/`, `docs/`를 기준으로 합니다.
