@@ -560,7 +560,7 @@ Track A 모델 비교 결과:
 - 모델링 단계의 원본 입력 상태를 스냅샷으로 남겨 재실행과 디버깅을 쉽게 하기 위해 생성했다.
 - 이후 feature engineering과 Track A/B 분기를 적용하기 전 기준 데이터를 확인할 수 있다.
 
-### 14.5 `outputs/model_comparison_results.csv`
+### 14.5 `outputs/tables/model_comparison_results.csv`
 
 의미:
 
@@ -581,7 +581,7 @@ Track A 모델 비교 결과:
 - 노트북 출력만으로는 모델 선택 근거가 휘발된다.
 - 모델 선택 기준을 CSV로 남기면 발표자료, 보고서, 재검증에 바로 사용할 수 있다.
 
-### 14.6 `outputs/track_a_vs_b_comparison.csv`
+### 14.6 `outputs/tables/track_a_vs_b_comparison.csv`
 
 의미:
 
@@ -592,7 +592,7 @@ Track A 모델 비교 결과:
 - 두 모델의 목적 차이와 성능 차이를 정량적으로 보여주기 위해 필요하다.
 - “사후 원인분석 모델과 사전 예측 모델은 비교 목적이 다르다”는 점을 숫자로 설명할 수 있다.
 
-### 14.7 `outputs/refreshed_search_summary.json`
+### 14.7 `outputs/metadata/refreshed_search_summary.json`
 
 의미:
 
@@ -657,7 +657,7 @@ Track A 모델 비교 결과:
 3일 초과 지연 기준 검정 결과:
 
 - 검정 위치: `notebooks/02_eda.ipynb`
-- 산출 파일: `outputs/delay_threshold_test_summary.csv`
+- 산출 파일: `outputs/tables/delay_threshold_test_summary.csv`
 - 검정 단위: `order_id` 기준 주문 단위. 리뷰 점수는 주문 단위인데 분석 데이터는 주문-아이템 단위이므로, 같은 주문 리뷰가 여러 아이템 행에 반복되는 영향을 줄이기 위해 주문당 1행만 남겼다.
 - 비교 그룹: 지연 주문 중 `1-3일 지연` vs `4일 이상 지연`
 - 평균 리뷰 점수: `1-3일 지연` 3.75점, `4일 이상 지연` 1.93점

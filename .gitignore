@@ -14,6 +14,11 @@ __pycache__/
 # Local agent/editor state
 .claude/
 
+# Local learning/presentation artifacts not needed for portfolio repo review.
+analytical_thinking/
+script/
+환영합니다*왕십리*.pdf
+
 # Large local data snapshots.
 # Already-tracked files remain tracked until explicitly removed with git rm --cached.
 data/raw/*.csv

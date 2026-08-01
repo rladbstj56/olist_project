@@ -165,16 +165,13 @@ olist_project/
 │   ├── raw/
 │   └── processed/
 ├── outputs/
-│   ├── model_comparison_results.csv
-│   ├── track_a_vs_b_comparison.csv
-│   ├── delay_threshold_test_summary.csv
-│   └── refreshed_search_summary.json
+│   ├── charts/                # 포트폴리오용 차트 이미지
+│   ├── tables/                # 모델 성능과 검정 결과 CSV
+│   └── metadata/              # 최종 탐색 설정 요약 JSON
 ├── docs/
 │   ├── modeling_decision_log.md
 │   └── conversation_context_log.md
 ├── archive/
-├── analytical_thinking/
-├── script/
 └── requirements.txt
 ```
 
@@ -183,12 +180,12 @@ olist_project/
 | `data/processed/merged_final_data.csv` | EDA와 모델링 공통 최종 분석 데이터 |
 | `data/processed/merged_train_data.csv` | EDA 이후 모델링 후보 데이터 |
 | `data/processed/ml_data.csv` | 모델링 직전 기준 데이터 스냅샷 |
-| `outputs/model_comparison_results.csv` | LightGBM, RandomForest, XGBoost 비교 결과 |
-| `outputs/track_a_vs_b_comparison.csv` | 사후 진단 모델, 사전 예측 모델, Baseline 최종 성능 비교 |
-| `outputs/delay_threshold_test_summary.csv` | 3일 초과 지연 기준 통계검정 결과 |
-| `outputs/portfolio_delay_review_gap.png` | 배송 지연 여부에 따른 평균 리뷰 점수 차트 |
-| `outputs/delay_review_threshold_bar.png` | 3일 초과 지연 기준을 설명하는 포트폴리오용 차트 |
-| `outputs/portfolio_dispatch_delay_rate.png` | 판매자 출고 속도별 배송 지연 발생률 차트 |
+| `outputs/tables/model_comparison_results.csv` | LightGBM, RandomForest, XGBoost 비교 결과 |
+| `outputs/tables/track_a_vs_b_comparison.csv` | 사후 진단 모델, 사전 예측 모델, Baseline 최종 성능 비교 |
+| `outputs/tables/delay_threshold_test_summary.csv` | 3일 초과 지연 기준 통계검정 결과 |
+| `outputs/charts/portfolio_delay_review_gap.png` | 배송 지연 여부에 따른 평균 리뷰 점수 차트 |
+| `outputs/charts/delay_review_threshold_bar.png` | 3일 초과 지연 기준을 설명하는 포트폴리오용 차트 |
+| `outputs/charts/portfolio_dispatch_delay_rate.png` | 판매자 출고 속도별 배송 지연 발생률 차트 |
 | `docs/modeling_decision_log.md` | 모델링 의사결정, 수정 근거, 한계 기록 |
 
 ## 9. 실행 방법

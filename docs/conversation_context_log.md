@@ -390,9 +390,9 @@ docs/conversation_context_log.md
 모델 결과:
 
 ```text
-code_final_report/finalcode/outputs/model_comparison_results.csv
-code_final_report/finalcode/outputs/track_a_vs_b_comparison.csv
-code_final_report/finalcode/outputs/refreshed_search_summary.json
+code_final_report/finalcode/outputs/tables/model_comparison_results.csv
+code_final_report/finalcode/outputs/tables/track_a_vs_b_comparison.csv
+code_final_report/finalcode/outputs/metadata/refreshed_search_summary.json
 ```
 
 의존성:
