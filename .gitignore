@@ -2,9 +2,22 @@
 .venv/
 __pycache__/
 .ipynb_checkpoints/
+*.pyc
+*.zip
+*.xlsx
+*.parquet
+*.pkl
+*.joblib
+*.sqlite
+*.db
 
 # Local agent/editor state
 .claude/
+
+# Large local data snapshots.
+# Already-tracked files remain tracked until explicitly removed with git rm --cached.
+data/raw/*.csv
+data/processed/*.csv
 
 # Excluded due to size and because this H&M analysis guide is not part of the final Olist project.
 analysis_guide/
