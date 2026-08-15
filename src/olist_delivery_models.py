@@ -29,6 +29,8 @@ from sklearn.preprocessing import OneHotEncoder
 
 
 TRACK_B_POSITIVE_THRESHOLD = 0.53
+TRACK_B_RISK_THRESHOLD = 1 - TRACK_B_POSITIVE_THRESHOLD
+TRACK_B_CAUTION_RISK_THRESHOLD = 0.35
 DEFAULT_TRACK_C_QUANTILE = 0.90
 RANDOM_STATE = 42
 
@@ -66,6 +68,13 @@ class TrainedModels:
     feature_cols: list[str]
     track_b_positive_threshold: float = TRACK_B_POSITIVE_THRESHOLD
     track_c_quantile: float = DEFAULT_TRACK_C_QUANTILE
+
+
+@dataclass
+class ConsoleArtifacts:
+    models: TrainedModels
+    test_orders: pd.DataFrame
+    high_risk_orders: pd.DataFrame
 
 
 def load_ml_data(data_path: str | Path = "data/processed/ml_data.csv") -> pd.DataFrame:
@@ -220,23 +229,24 @@ def train_models(
     )
 
 
+def risk_level_from_probability(review_risk_probability: float) -> str:
+    if review_risk_probability > TRACK_B_RISK_THRESHOLD:
+        return "고위험"
+    if review_risk_probability > TRACK_B_CAUTION_RISK_THRESHOLD:
+        return "주의"
+    return "일반"
+
+
 def predict_order(models: TrainedModels, order_features: pd.DataFrame) -> dict[str, float | str]:
     X = order_features[models.feature_cols]
     positive_probability = float(models.track_b.predict_proba(X)[:, 1][0])
     review_risk_probability = 1.0 - positive_probability
     predicted_delivery_days = float(models.track_c.predict(X)[0])
     current_expected_days = float(X["expected_delivery_days"].iloc[0])
-    recommended_expected_days = float(
-        max(current_expected_days, np.ceil(predicted_delivery_days))
-    )
+    is_track_c_target = review_risk_probability > TRACK_B_RISK_THRESHOLD
+    recommended_expected_days = float(max(current_expected_days, np.ceil(predicted_delivery_days)))
     adjustment_days = recommended_expected_days - current_expected_days
-
-    if positive_probability < models.track_b_positive_threshold:
-        risk_level = "고위험"
-    elif positive_probability < 0.65:
-        risk_level = "주의"
-    else:
-        risk_level = "일반"
+    risk_level = risk_level_from_probability(review_risk_probability)
 
     return {
         "positive_probability": positive_probability,
@@ -246,7 +256,62 @@ def predict_order(models: TrainedModels, order_features: pd.DataFrame) -> dict[s
         "recommended_expected_days": recommended_expected_days,
         "adjustment_days": adjustment_days,
         "risk_level": risk_level,
+        "is_track_c_target": is_track_c_target,
     }
+
+
+def train_console_artifacts(
+    df: pd.DataFrame,
+    quantile: float = DEFAULT_TRACK_C_QUANTILE,
+) -> ConsoleArtifacts:
+    model_df = prepare_model_frame(df)
+    X = model_df[PRE_ORDER_COLS]
+    y_track_b = review_risk_target(model_df["review_score"])
+    y_track_c = model_df["delivery_days"]
+    groups = model_df["order_id"]
+    X_train, X_test, y_train_b, _, _, _ = split_by_order(X, y_track_b, groups)
+    y_train_c = y_track_c.loc[X_train.index]
+
+    track_b = build_track_b_pipeline(X_train)
+    track_b.fit(X_train, y_train_b)
+
+    track_c = build_track_c_pipeline(X_train, quantile=quantile)
+    track_c.fit(X_train, y_train_c)
+
+    models = TrainedModels(
+        track_b=track_b,
+        track_c=track_c,
+        feature_cols=PRE_ORDER_COLS,
+        track_c_quantile=quantile,
+    )
+
+    positive_proba = track_b.predict_proba(X_test)[:, 1]
+    risk_proba = 1 - positive_proba
+    pred_delivery = track_c.predict(X_test)
+    recommended = np.maximum(X_test["expected_delivery_days"].to_numpy(), np.ceil(pred_delivery))
+    adjustment = recommended - X_test["expected_delivery_days"].to_numpy()
+
+    scored_test = df.loc[X_test.index].copy()
+    scored_test["review_risk_probability"] = risk_proba
+    scored_test["predicted_delivery_days_p90"] = pred_delivery
+    scored_test["recommended_expected_days"] = recommended
+    scored_test["adjustment_days"] = adjustment
+    scored_test["risk_level"] = [
+        risk_level_from_probability(probability) for probability in risk_proba
+    ]
+    high_risk_orders = (
+        scored_test[scored_test["risk_level"] == "고위험"]
+        .sort_values("review_risk_probability", ascending=False)
+        .drop_duplicates("order_id")
+        .reset_index(drop=True)
+    )
+    test_orders = scored_test.drop_duplicates("order_id").reset_index(drop=True)
+
+    return ConsoleArtifacts(
+        models=models,
+        test_orders=test_orders,
+        high_risk_orders=high_risk_orders,
+    )
 
 
 def evaluate_track_b(df: pd.DataFrame) -> dict[str, float]:
@@ -314,6 +379,7 @@ def make_recommendation_examples(
     df: pd.DataFrame,
     n_examples: int = 20,
     quantile: float = DEFAULT_TRACK_C_QUANTILE,
+    high_risk_only: bool = True,
 ) -> pd.DataFrame:
     model_df = prepare_model_frame(df)
     X = model_df[PRE_ORDER_COLS]
@@ -337,13 +403,13 @@ def make_recommendation_examples(
     examples["predicted_delivery_days_p90"] = pred_delivery
     examples["recommended_expected_days"] = recommended
     examples["adjustment_days"] = adjustment
-    examples["risk_level"] = np.where(
-        positive_proba < TRACK_B_POSITIVE_THRESHOLD,
-        "고위험",
-        np.where(positive_proba < 0.65, "주의", "일반"),
-    )
+    examples["risk_level"] = [
+        risk_level_from_probability(probability) for probability in risk_proba
+    ]
+    if high_risk_only:
+        examples = examples[examples["risk_level"] == "고위험"]
     return (
-        examples.sort_values(["risk_level", "review_risk_probability"], ascending=[True, False])
+        examples.sort_values("review_risk_probability", ascending=False)
         .head(n_examples)
         .reset_index(drop=True)
     )

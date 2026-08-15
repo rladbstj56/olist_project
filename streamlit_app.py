@@ -8,10 +8,12 @@ import streamlit as st
 from src.olist_delivery_models import (
     DEFAULT_TRACK_C_QUANTILE,
     PRE_ORDER_COLS,
+    TRACK_B_CAUTION_RISK_THRESHOLD,
+    TRACK_B_RISK_THRESHOLD,
     add_pre_order_features,
     load_ml_data,
     predict_order,
-    train_models,
+    train_console_artifacts,
 )
 
 
@@ -32,8 +34,8 @@ def load_source_data() -> pd.DataFrame:
 
 
 @st.cache_resource(show_spinner="모델 학습 중입니다.")
-def train_cached_models(df: pd.DataFrame):
-    return train_models(df, quantile=DEFAULT_TRACK_C_QUANTILE)
+def train_cached_console(df: pd.DataFrame):
+    return train_console_artifacts(df, quantile=DEFAULT_TRACK_C_QUANTILE)
 
 
 def option_list(df: pd.DataFrame, column: str) -> list:
@@ -71,6 +73,7 @@ def render_result(result: dict[str, float | str]) -> None:
     recommended_expected_days = float(result["recommended_expected_days"])
     adjustment_days = float(result["adjustment_days"])
     predicted_delivery_days = float(result["predicted_delivery_days"])
+    is_track_c_target = bool(result["is_track_c_target"])
 
     status_color = {
         "고위험": "#b42318",
@@ -91,15 +94,18 @@ def render_result(result: dict[str, float | str]) -> None:
 
     metric_cols = st.columns(3)
     metric_cols[0].metric("현재 예상 배송일", f"{current_expected_days:.0f}일")
-    metric_cols[1].metric(
-        "Track C 추천 예상 배송일",
-        f"{recommended_expected_days:.0f}일",
-        f"{adjustment_days:+.0f}일",
-    )
-    metric_cols[2].metric(
-        "90% 분위수 배송 소요일",
-        f"{predicted_delivery_days:.1f}일",
-    )
+    if is_track_c_target:
+        metric_cols[1].metric(
+            "Track C 추천 예상 배송일",
+            f"{recommended_expected_days:.0f}일",
+            f"{adjustment_days:+.0f}일",
+        )
+    else:
+        metric_cols[1].metric("Track C 적용", "비대상")
+    metric_cols[2].metric("90% 분위수 배송 소요일", f"{predicted_delivery_days:.1f}일")
+
+    if not is_track_c_target:
+        st.info("Track C 추천 예상 배송일은 Track B가 고위험으로 판정한 주문에만 운영 액션으로 적용합니다.")
 
     st.subheader("운영 액션")
     for action in risk_action_text(risk_level, adjustment_days):
@@ -108,13 +114,24 @@ def render_result(result: dict[str, float | str]) -> None:
 
 def main() -> None:
     df = load_source_data()
-    models = train_cached_models(df)
+    console = train_cached_console(df)
+    models = console.models
 
     st.title("Olist CS Risk Console")
 
-    sample_df = df.drop_duplicates("order_id").reset_index(drop=True)
+    with st.expander("Track B 판정 기준", expanded=False):
+        st.write(
+            f"- 고위험: 부정 리뷰 위험 확률이 {TRACK_B_RISK_THRESHOLD:.0%} 초과인 주문"
+        )
+        st.write(
+            f"- 주의: 부정 리뷰 위험 확률이 {TRACK_B_CAUTION_RISK_THRESHOLD:.0%} 초과부터 {TRACK_B_RISK_THRESHOLD:.0%} 이하인 주문"
+        )
+        st.write("- 일반: 부정 리뷰 위험 확률이 주의 기준 이하인 주문")
+        st.write("Track C 추천 예상 배송일은 고위험 주문에만 적용합니다.")
+
+    sample_df = console.test_orders
     selected_order_id = st.selectbox(
-        "샘플 주문",
+        "테스트 주문 예시",
         sample_df["order_id"].head(500).tolist(),
         index=0,
     )
@@ -240,6 +257,46 @@ def main() -> None:
     with right:
         st.subheader("입력 주문")
         st.dataframe(input_row, use_container_width=True, hide_index=True)
+
+    st.subheader("고위험 주문 관리 목록")
+    high_risk_view = console.high_risk_orders[
+        [
+            "order_id",
+            "review_risk_probability",
+            "expected_delivery_days",
+            "predicted_delivery_days_p90",
+            "recommended_expected_days",
+            "adjustment_days",
+            "price",
+            "freight_value",
+            "main_category",
+            "sub_category",
+            "distance_km",
+            "customer_state",
+            "seller_state",
+        ]
+    ].head(50).copy()
+    high_risk_view["review_risk_probability"] = high_risk_view["review_risk_probability"] * 100
+    st.dataframe(
+        high_risk_view,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "order_id": "주문 ID",
+            "review_risk_probability": st.column_config.NumberColumn("부정 리뷰 위험 확률", format="%.1f%%"),
+            "expected_delivery_days": "현재 예상 배송일",
+            "predicted_delivery_days_p90": st.column_config.NumberColumn("90% 분위수 배송 소요일", format="%.1f"),
+            "recommended_expected_days": "추천 예상 배송일",
+            "adjustment_days": "조정일수",
+            "price": "상품 가격",
+            "freight_value": "배송비",
+            "main_category": "대분류",
+            "sub_category": "중분류",
+            "distance_km": st.column_config.NumberColumn("거리(km)", format="%.1f"),
+            "customer_state": "고객 주",
+            "seller_state": "셀러 주",
+        },
+    )
 
     st.caption(
         "Track C는 90% 분위수를 기본 운영 기준으로 사용한다. 실제 운영 기준은 지연 감소 효과와 예상 배송일 증가에 따른 전환 손실을 함께 비교해 조정해야 한다."
