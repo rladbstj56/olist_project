@@ -32,6 +32,7 @@ TRACK_B_POSITIVE_THRESHOLD = 0.53
 TRACK_B_RISK_THRESHOLD = 1 - TRACK_B_POSITIVE_THRESHOLD
 TRACK_B_CAUTION_RISK_THRESHOLD = 0.35
 DEFAULT_TRACK_C_QUANTILE = 0.90
+TRACK_C_QUANTILE_OPTIONS = (0.80, 0.85, 0.90, 0.95)
 RANDOM_STATE = 42
 
 
@@ -229,24 +230,37 @@ def train_models(
     )
 
 
-def risk_level_from_probability(review_risk_probability: float) -> str:
-    if review_risk_probability > TRACK_B_RISK_THRESHOLD:
+def risk_level_from_probability(
+    review_risk_probability: float,
+    risk_threshold: float = TRACK_B_RISK_THRESHOLD,
+    caution_threshold: float = TRACK_B_CAUTION_RISK_THRESHOLD,
+) -> str:
+    if review_risk_probability > risk_threshold:
         return "고위험"
-    if review_risk_probability > TRACK_B_CAUTION_RISK_THRESHOLD:
+    if review_risk_probability > caution_threshold:
         return "주의"
     return "일반"
 
 
-def predict_order(models: TrainedModels, order_features: pd.DataFrame) -> dict[str, float | str]:
+def predict_order(
+    models: TrainedModels,
+    order_features: pd.DataFrame,
+    risk_threshold: float = TRACK_B_RISK_THRESHOLD,
+    caution_threshold: float = TRACK_B_CAUTION_RISK_THRESHOLD,
+) -> dict[str, float | str]:
     X = order_features[models.feature_cols]
     positive_probability = float(models.track_b.predict_proba(X)[:, 1][0])
     review_risk_probability = 1.0 - positive_probability
     predicted_delivery_days = float(models.track_c.predict(X)[0])
     current_expected_days = float(X["expected_delivery_days"].iloc[0])
-    is_track_c_target = review_risk_probability > TRACK_B_RISK_THRESHOLD
+    is_track_c_target = review_risk_probability > risk_threshold
     recommended_expected_days = float(max(current_expected_days, np.ceil(predicted_delivery_days)))
     adjustment_days = recommended_expected_days - current_expected_days
-    risk_level = risk_level_from_probability(review_risk_probability)
+    risk_level = risk_level_from_probability(
+        review_risk_probability,
+        risk_threshold=risk_threshold,
+        caution_threshold=caution_threshold,
+    )
 
     return {
         "positive_probability": positive_probability,
@@ -263,6 +277,8 @@ def predict_order(models: TrainedModels, order_features: pd.DataFrame) -> dict[s
 def train_console_artifacts(
     df: pd.DataFrame,
     quantile: float = DEFAULT_TRACK_C_QUANTILE,
+    risk_threshold: float = TRACK_B_RISK_THRESHOLD,
+    caution_threshold: float = TRACK_B_CAUTION_RISK_THRESHOLD,
 ) -> ConsoleArtifacts:
     model_df = prepare_model_frame(df)
     X = model_df[PRE_ORDER_COLS]
@@ -293,11 +309,16 @@ def train_console_artifacts(
 
     scored_test = df.loc[X_test.index].copy()
     scored_test["review_risk_probability"] = risk_proba
-    scored_test["predicted_delivery_days_p90"] = pred_delivery
+    scored_test["predicted_delivery_days_quantile"] = pred_delivery
     scored_test["recommended_expected_days"] = recommended
     scored_test["adjustment_days"] = adjustment
     scored_test["risk_level"] = [
-        risk_level_from_probability(probability) for probability in risk_proba
+        risk_level_from_probability(
+            probability,
+            risk_threshold=risk_threshold,
+            caution_threshold=caution_threshold,
+        )
+        for probability in risk_proba
     ]
     high_risk_orders = (
         scored_test[scored_test["risk_level"] == "고위험"]
@@ -380,6 +401,8 @@ def make_recommendation_examples(
     n_examples: int = 20,
     quantile: float = DEFAULT_TRACK_C_QUANTILE,
     high_risk_only: bool = True,
+    risk_threshold: float = TRACK_B_RISK_THRESHOLD,
+    caution_threshold: float = TRACK_B_CAUTION_RISK_THRESHOLD,
 ) -> pd.DataFrame:
     model_df = prepare_model_frame(df)
     X = model_df[PRE_ORDER_COLS]
@@ -404,7 +427,12 @@ def make_recommendation_examples(
     examples["recommended_expected_days"] = recommended
     examples["adjustment_days"] = adjustment
     examples["risk_level"] = [
-        risk_level_from_probability(probability) for probability in risk_proba
+        risk_level_from_probability(
+            probability,
+            risk_threshold=risk_threshold,
+            caution_threshold=caution_threshold,
+        )
+        for probability in risk_proba
     ]
     if high_risk_only:
         examples = examples[examples["risk_level"] == "고위험"]

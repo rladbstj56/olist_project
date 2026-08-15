@@ -10,6 +10,7 @@ from src.olist_delivery_models import (
     PRE_ORDER_COLS,
     TRACK_B_CAUTION_RISK_THRESHOLD,
     TRACK_B_RISK_THRESHOLD,
+    TRACK_C_QUANTILE_OPTIONS,
     add_pre_order_features,
     load_ml_data,
     predict_order,
@@ -34,8 +35,18 @@ def load_source_data() -> pd.DataFrame:
 
 
 @st.cache_resource(show_spinner="모델 학습 중입니다.")
-def train_cached_console(df: pd.DataFrame):
-    return train_console_artifacts(df, quantile=DEFAULT_TRACK_C_QUANTILE)
+def train_cached_console(
+    df: pd.DataFrame,
+    quantile: float,
+    risk_threshold: float,
+    caution_threshold: float,
+):
+    return train_console_artifacts(
+        df,
+        quantile=quantile,
+        risk_threshold=risk_threshold,
+        caution_threshold=caution_threshold,
+    )
 
 
 def option_list(df: pd.DataFrame, column: str) -> list:
@@ -66,7 +77,7 @@ def risk_action_text(risk_level: str, adjustment_days: float) -> list[str]:
     return ["일반 처리"]
 
 
-def render_result(result: dict[str, float | str]) -> None:
+def render_result(result: dict[str, float | str], selected_quantile: float) -> None:
     risk_level = str(result["risk_level"])
     risk_probability = float(result["review_risk_probability"])
     current_expected_days = float(result["current_expected_days"])
@@ -102,7 +113,10 @@ def render_result(result: dict[str, float | str]) -> None:
         )
     else:
         metric_cols[1].metric("Track C 적용", "비대상")
-    metric_cols[2].metric("90% 분위수 배송 소요일", f"{predicted_delivery_days:.1f}일")
+    metric_cols[2].metric(
+        f"{selected_quantile:.0%} 분위수 배송 소요일",
+        f"{predicted_delivery_days:.1f}일",
+    )
 
     if not is_track_c_target:
         st.info("Track C 추천 예상 배송일은 Track B가 고위험으로 판정한 주문에만 운영 액션으로 적용합니다.")
@@ -114,20 +128,52 @@ def render_result(result: dict[str, float | str]) -> None:
 
 def main() -> None:
     df = load_source_data()
-    console = train_cached_console(df)
-    models = console.models
 
     st.title("Olist CS Risk Console")
 
+    with st.sidebar:
+        st.header("운영 기준")
+        risk_threshold_percent = st.slider(
+            "Track B 고위험 기준",
+            min_value=20,
+            max_value=80,
+            value=int(round(TRACK_B_RISK_THRESHOLD * 100)),
+            step=1,
+            help="부정 리뷰 위험 확률이 이 값보다 높은 주문만 Track C 추천 대상이 됩니다.",
+        )
+        caution_threshold_percent = st.slider(
+            "Track B 주의 기준",
+            min_value=10,
+            max_value=max(10, risk_threshold_percent - 1),
+            value=min(int(round(TRACK_B_CAUTION_RISK_THRESHOLD * 100)), risk_threshold_percent - 1),
+            step=1,
+            help="고위험은 아니지만 배송 모니터링이 필요한 중간 위험군 기준입니다.",
+        )
+        selected_quantile_percent = st.select_slider(
+            "Track C 분위수 기준",
+            options=[int(q * 100) for q in TRACK_C_QUANTILE_OPTIONS],
+            value=int(DEFAULT_TRACK_C_QUANTILE * 100),
+            help="값이 높을수록 추천 예상 배송일이 보수적으로 길어집니다.",
+        )
+
+    risk_threshold = risk_threshold_percent / 100
+    caution_threshold = caution_threshold_percent / 100
+    selected_quantile = selected_quantile_percent / 100
+
+    console = train_cached_console(df, selected_quantile, risk_threshold, caution_threshold)
+    models = console.models
+
     with st.expander("Track B 판정 기준", expanded=False):
         st.write(
-            f"- 고위험: 부정 리뷰 위험 확률이 {TRACK_B_RISK_THRESHOLD:.0%} 초과인 주문"
+            f"- 고위험: 부정 리뷰 위험 확률이 {risk_threshold:.0%} 초과인 주문"
         )
         st.write(
-            f"- 주의: 부정 리뷰 위험 확률이 {TRACK_B_CAUTION_RISK_THRESHOLD:.0%} 초과부터 {TRACK_B_RISK_THRESHOLD:.0%} 이하인 주문"
+            f"- 주의: 부정 리뷰 위험 확률이 {caution_threshold:.0%} 초과부터 {risk_threshold:.0%} 이하인 주문"
         )
         st.write("- 일반: 부정 리뷰 위험 확률이 주의 기준 이하인 주문")
+        st.write(f"- Track C 분위수 기준: {selected_quantile:.0%}")
         st.write("Track C 추천 예상 배송일은 고위험 주문에만 적용합니다.")
+        st.write("기본값은 검증셋 threshold와 90% 분위수 운영 가정에 기반하며, 실제 운영에서는 CS 처리 가능량과 구매 전환 손실을 고려해 조정할 수 있습니다.")
 
     sample_df = console.test_orders
     selected_order_id = st.selectbox(
@@ -249,22 +295,30 @@ def main() -> None:
     }
 
     input_row = build_input_row(values)
-    result = predict_order(models, input_row)
+    result = predict_order(
+        models,
+        input_row,
+        risk_threshold=risk_threshold,
+        caution_threshold=caution_threshold,
+    )
 
     left, right = st.columns([1.15, 0.85])
     with left:
-        render_result(result)
+        render_result(result, selected_quantile)
     with right:
         st.subheader("입력 주문")
         st.dataframe(input_row, use_container_width=True, hide_index=True)
 
     st.subheader("고위험 주문 관리 목록")
+    st.caption(
+        f"현재 기준에서 고위험으로 분류된 테스트 주문 {len(console.high_risk_orders):,}건입니다. 이 목록이 Track C 추천 예상 배송일 검토 대상입니다."
+    )
     high_risk_view = console.high_risk_orders[
         [
             "order_id",
             "review_risk_probability",
             "expected_delivery_days",
-            "predicted_delivery_days_p90",
+            "predicted_delivery_days_quantile",
             "recommended_expected_days",
             "adjustment_days",
             "price",
@@ -285,7 +339,10 @@ def main() -> None:
             "order_id": "주문 ID",
             "review_risk_probability": st.column_config.NumberColumn("부정 리뷰 위험 확률", format="%.1f%%"),
             "expected_delivery_days": "현재 예상 배송일",
-            "predicted_delivery_days_p90": st.column_config.NumberColumn("90% 분위수 배송 소요일", format="%.1f"),
+            "predicted_delivery_days_quantile": st.column_config.NumberColumn(
+                f"{selected_quantile:.0%} 분위수 배송 소요일",
+                format="%.1f",
+            ),
             "recommended_expected_days": "추천 예상 배송일",
             "adjustment_days": "조정일수",
             "price": "상품 가격",
@@ -299,7 +356,7 @@ def main() -> None:
     )
 
     st.caption(
-        "Track C는 90% 분위수를 기본 운영 기준으로 사용한다. 실제 운영 기준은 지연 감소 효과와 예상 배송일 증가에 따른 전환 손실을 함께 비교해 조정해야 한다."
+        "기본값은 Track B 고위험 기준 47%, Track C 분위수 90%입니다. 실제 운영 기준은 지연 감소 효과와 예상 배송일 증가에 따른 전환 손실을 함께 비교해 조정해야 합니다."
     )
 
 
