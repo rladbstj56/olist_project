@@ -843,3 +843,49 @@ Track C가 아직 구현 전이라면 “향후 확장 제안”으로 표현한
 Track C를 실제 구현한 뒤에는 다음처럼 표현을 강화할 수 있다.
 
 > Track B로 고위험 주문을 선별한 뒤, Track C 분위수 기반 배송 소요일 예측 모델로 주문별 추천 예상 배송일을 산출했다. 이를 통해 부정 리뷰 위험 예측을 운영자가 실행 가능한 배송 약속 조정 액션으로 연결했다.
+
+### 18.6 Track C 1차 구현 결과
+
+구현일: 2026-08-15
+
+추가 파일:
+
+- `src/olist_delivery_models.py`
+- `scripts/generate_track_c_outputs.py`
+- `streamlit_app.py`
+- `outputs/tables/track_c_quantile_results.csv`
+- `outputs/tables/track_c_recommendation_examples.csv`
+
+구현한 함수와 역할:
+
+| 함수 | 입력 | 출력 | 역할 |
+| --- | --- | --- | --- |
+| `load_ml_data` | `data/processed/ml_data.csv` 경로 | `DataFrame` | 모델링 직전 데이터를 불러온다. |
+| `add_pre_order_features` | 원본 주문-아이템 데이터 | 파생 feature가 추가된 `DataFrame` | Track B와 Track C가 공통으로 쓰는 주문 시점 feature를 만든다. |
+| `build_track_b_pipeline` | Track B 입력 feature | scikit-learn `Pipeline` | 부정 리뷰 위험도를 예측하는 LightGBM 분류 파이프라인을 만든다. |
+| `build_track_c_pipeline` | Track C 입력 feature, 분위수 기준 | scikit-learn `Pipeline` | `delivery_days`의 분위수 예측을 수행하는 LightGBM 회귀 파이프라인을 만든다. |
+| `predict_order` | 학습된 모델, 주문 1건 feature | 위험도, 추천 예상 배송일 딕셔너리 | UI에서 단일 주문의 Track B/C 결과를 계산한다. |
+| `evaluate_track_c_quantiles` | 전체 데이터, 분위수 후보 | 분위수별 성능 비교표 | 80%, 90%, 95% 기준의 지연율과 조정일수를 비교한다. |
+
+Track C 입력 feature는 Track B와 동일한 주문 시점 feature 22개를 사용한다. `delivery_days`는 target으로만 사용하며 입력 feature에는 넣지 않는다.
+
+1차 산출 결과:
+
+| 분위수 기준 | 현재 4일 이상 지연율 | 추천 후 4일 이상 지연율 | 평균 조정일수 | 조정 주문 비율 |
+| --- | ---: | ---: | ---: | ---: |
+| 80% | 5.04% | 4.51% | 0.24일 | 7.78% |
+| 90% | 5.04% | 3.50% | 1.22일 | 23.86% |
+| 95% | 5.04% | 2.44% | 3.06일 | 43.85% |
+
+해석:
+
+- 90% 분위수 기준은 4일 이상 지연율을 5.04%에서 3.50%로 낮추는 시뮬레이션 결과를 보였다.
+- 그 대가로 평균 추천 조정일수는 1.22일 증가하고, 약 23.86%의 주문에서 현재 예상 배송일보다 긴 추천일이 제시된다.
+- 95% 기준은 지연율을 더 낮추지만 평균 조정일수와 조정 대상 주문 비율이 커진다.
+- 따라서 90% 기준은 초기 운영 기준으로 적절하지만, 최종 기준은 구매 전환율, 고객 안내 비용, CS 처리 비용을 함께 고려해 조정해야 한다.
+
+Streamlit UI:
+
+- 실행 파일: `streamlit_app.py`
+- 실행 명령: `python -m streamlit run streamlit_app.py`
+- 기능: 샘플 주문 선택 또는 입력값 조정, Track B 위험도 확인, Track C 추천 예상 배송일 확인, 운영 액션 확인

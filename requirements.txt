@@ -10,5 +10,6 @@ statsmodels==0.14.6
 pingouin==0.5.5
 scikit-posthocs==0.12.0
 plotly
+streamlit==1.49.0
 nbclient==0.10.2
 nbformat==5.10.4

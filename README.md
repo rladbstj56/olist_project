@@ -96,6 +96,18 @@ Mann-Whitney U 검정 결과, 배송 지연 여부에 따른 리뷰 점수 차�
 
 Baseline은 정확도만 보면 높지만 부정 리뷰를 하나도 탐지하지 못합니다. 반면 사전 예측 모델은 배송 전 정보만으로도 부정 리뷰의 약 60%를 탐지해, 선제 안내나 배송 우선순위 판단에 활용할 가능성을 보였습니다.
 
+### 5.4 Track C 예상 배송일 추천
+
+Track B가 부정 리뷰 위험 주문을 선별하면, Track C는 해당 주문에 대해 더 보수적인 예상 배송일을 추천합니다. Track C는 주문 시점 정보만 사용해 `delivery_days`의 90% 분위수를 예측하는 LightGBM quantile regression 모델입니다.
+
+90% 분위수는 고정된 정답 임계값이 아니라 초기 운영 기준입니다. 실제 운영에서는 지연 감소 효과와 예상 배송일 증가에 따른 구매 전환 손실을 함께 비교해 80%, 90%, 95% 등으로 조정해야 합니다.
+
+| 분위수 기준 | 현재 4일 이상 지연율 | 추천 후 4일 이상 지연율 | 평균 조정일수 | 조정 주문 비율 |
+| --- | ---: | ---: | ---: | ---: |
+| 80% | 5.04% | 4.51% | 0.24일 | 7.78% |
+| 90% | 5.04% | 3.50% | 1.22일 | 23.86% |
+| 95% | 5.04% | 2.44% | 3.06일 | 43.85% |
+
 ## 6. 인사이트와 운영 제안
 
 분석 결과는 단순한 모델 성능 비교보다, CS와 운영팀이 어떤 기준으로 주문을 관리할 수 있는지로 해석하는 것이 중요합니다.
@@ -106,6 +118,7 @@ Baseline은 정확도만 보면 높지만 부정 리뷰를 하나도 탐지하�
 | --- | --- | --- | --- | --- |
 | 주문 시점 사전 예측 모델 | 주문 확정 직후, 배송 시작 전 | 가격, 배송비, 상품 스펙, 예상 배송일, 지역·거리 정보 | 위험 주문 사전 선별, 출고 상태 우선 확인, 선제 안내 대상 선정 | 고객 불만이 발생하기 전에 개입할 수 있음 |
 | 배송 완료 후 진단 모델 | 배송 완료 후, 리뷰 작성 전후 | 실제 배송일, 지연일, 배송 속도 등 배송 결과 정보 | 불만 원인 진단, CS 우선순위 판단, 보상·환불 검토, 판매자 운영 점검 | 이미 발생했거나 발생 가능성이 높은 불만을 원인 중심으로 대응할 수 있음 |
+| 예상 배송일 추천 모델 | Track B 고위험 주문 선별 후 | 주문 시점 정보, 현재 예상 배송일 | 고위험 주문의 보수적 예상 배송일 추천, 고객 안내 기준 보정 | 4일 이상 지연 구간 진입 가능성을 줄이는 운영 액션으로 연결 |
 
 두 모델은 우열 관계가 아니라 사용 시점이 다릅니다. 사전 예측 모델은 배송 전에 개입하기 위한 모델이고, 배송 완료 후 진단 모델은 실제 배송 결과까지 반영해 CS 대응과 운영 개선의 근거를 만드는 모델입니다.
 
@@ -141,6 +154,20 @@ Baseline은 정확도만 보면 높지만 부정 리뷰를 하나도 탐지하�
 
 주의할 점은 이 제안들이 관찰 데이터 기반 분석에서 나온 운영 가설이라는 것입니다. 실제 정책으로 적용하려면 A/B 테스트나 파일럿 운영을 통해 고객 만족도, 비용, 재구매율 변화를 추가로 검증해야 합니다.
 
+### 6.5 Track B와 Track C를 연결한 운영 콘솔
+
+Streamlit UI를 통해 운영자가 주문 정보를 입력하면 Track B가 부정 리뷰 위험도를 예측하고, 고위험 주문에 대해 Track C가 추천 예상 배송일을 제안합니다.
+
+운영 흐름:
+
+```text
+주문 정보 입력
+→ Track B 부정 리뷰 위험도 예측
+→ 고위험 주문 판정
+→ Track C 90% 분위수 배송 소요일 예측
+→ 추천 예상 배송일과 운영 액션 제시
+```
+
 ## 7. 모델 설계 판단
 
 ### Track A: 배송 완료 후 사후 진단 모델
@@ -161,6 +188,11 @@ olist_project/
 │   ├── 01_preprocessing.ipynb
 │   ├── 02_eda.ipynb
 │   └── 03_ml_classifier.ipynb
+├── src/
+│   └── olist_delivery_models.py
+├── scripts/
+│   └── generate_track_c_outputs.py
+├── streamlit_app.py
 ├── data/
 │   ├── raw/
 │   └── processed/
@@ -182,6 +214,8 @@ olist_project/
 | `data/processed/ml_data.csv` | 모델링 직전 기준 데이터 스냅샷 |
 | `outputs/tables/model_comparison_results.csv` | LightGBM, RandomForest, XGBoost 비교 결과 |
 | `outputs/tables/track_a_vs_b_comparison.csv` | 사후 진단 모델, 사전 예측 모델, Baseline 최종 성능 비교 |
+| `outputs/tables/track_c_quantile_results.csv` | Track C 분위수 기준별 예상 배송일 추천 효과 비교 |
+| `outputs/tables/track_c_recommendation_examples.csv` | Track B/C 연결 추천 예시 |
 | `outputs/tables/delay_threshold_test_summary.csv` | 3일 초과 지연 기준 통계검정 결과 |
 | `outputs/charts/portfolio_delay_review_gap.png` | 배송 지연 여부에 따른 평균 리뷰 점수 차트 |
 | `outputs/charts/delay_review_threshold_bar.png` | 3일 초과 지연 기준을 설명하는 포트폴리오용 차트 |
@@ -207,6 +241,18 @@ notebooks/01_preprocessing.ipynb
 ```
 
 각 노트북은 프로젝트 루트를 자동으로 찾도록 구성되어 있어, `olist_project` 루트 또는 `notebooks/` 폴더에서 실행해도 같은 데이터를 참조합니다.
+
+### 9.3 Track C 결과 생성
+
+```bash
+python scripts/generate_track_c_outputs.py
+```
+
+### 9.4 운영 콘솔 실행
+
+```bash
+python -m streamlit run streamlit_app.py
+```
 
 ## 10. 한계와 주의사항
 
