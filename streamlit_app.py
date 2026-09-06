@@ -23,7 +23,7 @@ DATA_PATH = PROJECT_ROOT / "data" / "processed" / "ml_data.csv"
 
 
 st.set_page_config(
-    page_title="Olist CS Risk Console",
+    page_title="Olist Low Satisfaction Risk Console",
     page_icon="",
     layout="wide",
 )
@@ -97,7 +97,7 @@ def render_result(result: dict[str, float | str], selected_quantile: float) -> N
         <div style="border:1px solid #d0d5dd; padding:18px; border-radius:8px;">
             <div style="font-size:13px; color:#667085;">Track B 판정</div>
             <div style="font-size:28px; font-weight:700; color:{status_color};">{risk_level}</div>
-            <div style="font-size:15px; margin-top:4px;">부정 리뷰 위험 확률 {risk_probability:.1%}</div>
+            <div style="font-size:15px; margin-top:4px;">낮은 만족도 리뷰 위험 확률 {risk_probability:.1%}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -129,7 +129,7 @@ def render_result(result: dict[str, float | str], selected_quantile: float) -> N
 def main() -> None:
     df = load_source_data()
 
-    st.title("Olist CS Risk Console")
+    st.title("Olist Low Satisfaction Risk Console")
 
     with st.sidebar:
         st.header("운영 기준")
@@ -139,7 +139,7 @@ def main() -> None:
             max_value=80,
             value=int(round(TRACK_B_RISK_THRESHOLD * 100)),
             step=1,
-            help="부정 리뷰 위험 확률이 이 값보다 높은 주문만 Track C 추천 대상이 됩니다.",
+            help="낮은 만족도 리뷰 위험 확률이 이 값보다 높은 주문만 Track C 추천 대상이 됩니다.",
         )
         caution_threshold_percent = st.slider(
             "Track B 주의 기준",
@@ -165,12 +165,13 @@ def main() -> None:
 
     with st.expander("Track B 판정 기준", expanded=False):
         st.write(
-            f"- 고위험: 부정 리뷰 위험 확률이 {risk_threshold:.0%} 초과인 주문"
+            f"- 고위험: 낮은 만족도 리뷰 위험 확률이 {risk_threshold:.0%} 초과인 주문"
         )
         st.write(
-            f"- 주의: 부정 리뷰 위험 확률이 {caution_threshold:.0%} 초과부터 {risk_threshold:.0%} 이하인 주문"
+            f"- 주의: 낮은 만족도 리뷰 위험 확률이 {caution_threshold:.0%} 초과부터 {risk_threshold:.0%} 이하인 주문"
         )
-        st.write("- 일반: 부정 리뷰 위험 확률이 주의 기준 이하인 주문")
+        st.write("- 일반: 낮은 만족도 리뷰 위험 확률이 주의 기준 이하인 주문")
+        st.write("- 기본 라벨 정책: 1점·2점은 낮은 만족도, 4점·5점은 긍정, 3점은 중립으로 제외")
         st.write(f"- Track C 분위수 기준: {selected_quantile:.0%}")
         st.write("Track C 추천 예상 배송일은 고위험 주문에만 적용합니다.")
         st.write("기본값은 검증셋 threshold와 90% 분위수 운영 가정에 기반하며, 실제 운영에서는 CS 처리 가능량과 구매 전환 손실을 고려해 조정할 수 있습니다.")
@@ -337,7 +338,7 @@ def main() -> None:
         hide_index=True,
         column_config={
             "order_id": "주문 ID",
-            "review_risk_probability": st.column_config.NumberColumn("부정 리뷰 위험 확률", format="%.1f%%"),
+            "review_risk_probability": st.column_config.NumberColumn("낮은 만족도 리뷰 위험 확률", format="%.1f%%"),
             "expected_delivery_days": "현재 예상 배송일",
             "predicted_delivery_days_quantile": st.column_config.NumberColumn(
                 f"{selected_quantile:.0%} 분위수 배송 소요일",
@@ -356,7 +357,7 @@ def main() -> None:
     )
 
     st.caption(
-        "기본값은 Track B 고위험 기준 47%, Track C 분위수 90%입니다. 실제 운영 기준은 지연 감소 효과와 예상 배송일 증가에 따른 전환 손실을 함께 비교해 조정해야 합니다."
+        "기본값은 Track B 고위험 기준 46%, Track C 분위수 90%입니다. 실제 운영 기준은 낮은 만족도 리뷰 미탐 비용, 확인 가능 주문 수, 예상 배송일 증가에 따른 전환 손실을 함께 비교해 조정해야 합니다."
     )
 
 

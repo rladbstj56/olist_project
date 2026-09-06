@@ -18,9 +18,12 @@ from lightgbm import LGBMClassifier, LGBMRegressor
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
     balanced_accuracy_score,
     f1_score,
     mean_absolute_error,
+    precision_score,
     recall_score,
 )
 from sklearn.model_selection import GroupShuffleSplit
@@ -28,12 +31,19 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
 
-TRACK_B_POSITIVE_THRESHOLD = 0.53
+TRACK_B_POSITIVE_THRESHOLD = 0.54
 TRACK_B_RISK_THRESHOLD = 1 - TRACK_B_POSITIVE_THRESHOLD
 TRACK_B_CAUTION_RISK_THRESHOLD = 0.35
 DEFAULT_TRACK_C_QUANTILE = 0.90
 TRACK_C_QUANTILE_OPTIONS = (0.80, 0.85, 0.90, 0.95)
 RANDOM_STATE = 42
+DEFAULT_LABEL_POLICY = "1_2_negative_4_5_positive_drop_3"
+
+LABEL_POLICY_DESCRIPTIONS = {
+    DEFAULT_LABEL_POLICY: "1-2점은 낮은 만족도, 4-5점은 긍정, 3점은 중립으로 제외",
+    "1_2_negative_3_5_non_negative": "1-2점은 낮은 만족도, 3-5점은 비위험",
+    "1_3_risk_4_5_positive": "1-3점은 CS 리스크, 4-5점은 긍정",
+}
 
 
 PRE_ORDER_COLS = [
@@ -61,12 +71,28 @@ PRE_ORDER_COLS = [
     "sp_route_type_seller",
 ]
 
+TRACK_A_COLS = [
+    *PRE_ORDER_COLS,
+    "approved_days",
+    "dispatch_days",
+    "delivery_days",
+    "delay_days",
+    "is_delayed",
+    "delay_days_cat",
+    "delivery_speed",
+    "day_per_km",
+    "delivery_ratio",
+    "delivery_distance",
+    "delivery_price",
+]
+
 
 @dataclass
 class TrainedModels:
     track_b: Pipeline
     track_c: Pipeline
     feature_cols: list[str]
+    label_policy: str = DEFAULT_LABEL_POLICY
     track_b_positive_threshold: float = TRACK_B_POSITIVE_THRESHOLD
     track_c_quantile: float = DEFAULT_TRACK_C_QUANTILE
 
@@ -111,8 +137,37 @@ def add_pre_order_features(df: pd.DataFrame) -> pd.DataFrame:
     return out.replace([np.inf, -np.inf], np.nan)
 
 
-def review_risk_target(review_score: pd.Series) -> pd.Series:
-    return (review_score >= 4).astype(int)
+def add_post_delivery_features(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    out["delivery_speed"] = safe_divide(out["distance_km"], out["delivery_days"])
+    out["day_per_km"] = safe_divide(out["delivery_days"], out["distance_km"])
+    out["delivery_ratio"] = safe_divide(out["delivery_days"], out["expected_delivery_days"])
+    out["delivery_distance"] = out["delivery_days"] * out["distance_km"]
+    out["delivery_price"] = out["delivery_days"] * out["price"]
+    return out.replace([np.inf, -np.inf], np.nan)
+
+
+def review_risk_target(
+    review_score: pd.Series,
+    label_policy: str = DEFAULT_LABEL_POLICY,
+) -> pd.Series:
+    score = pd.to_numeric(review_score, errors="coerce")
+    target = pd.Series(pd.NA, index=review_score.index, dtype="Int64")
+
+    if label_policy == DEFAULT_LABEL_POLICY:
+        target.loc[score.isin([1, 2])] = 0
+        target.loc[score.isin([4, 5])] = 1
+    elif label_policy == "1_2_negative_3_5_non_negative":
+        target.loc[score.isin([1, 2])] = 0
+        target.loc[score.isin([3, 4, 5])] = 1
+    elif label_policy == "1_3_risk_4_5_positive":
+        target.loc[score.isin([1, 2, 3])] = 0
+        target.loc[score.isin([4, 5])] = 1
+    else:
+        valid = ", ".join(LABEL_POLICY_DESCRIPTIONS)
+        raise ValueError(f"Unknown label_policy: {label_policy}. Valid policies: {valid}")
+
+    return target
 
 
 def make_preprocessor(X: pd.DataFrame) -> ColumnTransformer:
@@ -153,6 +208,65 @@ def split_by_order(
     )
 
 
+def split_train_valid_test_by_order(
+    X: pd.DataFrame,
+    y: pd.Series,
+    groups: pd.Series,
+    test_size: float = 0.2,
+    valid_size: float = 0.2,
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.Series,
+    pd.Series,
+    pd.Series,
+    pd.Series,
+    pd.Series,
+    pd.Series,
+]:
+    splitter_test = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=RANDOM_STATE)
+    train_valid_idx, test_idx = next(splitter_test.split(X, y, groups=groups))
+
+    X_train_valid = X.iloc[train_valid_idx]
+    y_train_valid = y.iloc[train_valid_idx]
+    groups_train_valid = groups.iloc[train_valid_idx]
+    X_test = X.iloc[test_idx]
+    y_test = y.iloc[test_idx]
+    groups_test = groups.iloc[test_idx]
+
+    splitter_valid = GroupShuffleSplit(n_splits=1, test_size=valid_size, random_state=RANDOM_STATE)
+    train_idx, valid_idx = next(
+        splitter_valid.split(X_train_valid, y_train_valid, groups=groups_train_valid)
+    )
+
+    return (
+        X_train_valid.iloc[train_idx],
+        X_train_valid.iloc[valid_idx],
+        X_test,
+        y_train_valid.iloc[train_idx],
+        y_train_valid.iloc[valid_idx],
+        y_test,
+        groups_train_valid.iloc[train_idx],
+        groups_train_valid.iloc[valid_idx],
+        groups_test,
+    )
+
+
+def select_positive_threshold(
+    y_true: pd.Series,
+    positive_proba: np.ndarray,
+    thresholds: Iterable[float] = np.arange(0.10, 0.91, 0.01),
+) -> float:
+    rows = [
+        risk_classification_metrics(y_true, positive_proba, positive_threshold=float(threshold))
+        for threshold in thresholds
+    ]
+    threshold_df = pd.DataFrame(rows)
+    threshold_df["gap"] = (threshold_df["risk_recall"] - threshold_df["balanced_acc"]).abs()
+    return float(threshold_df.loc[threshold_df["gap"].idxmin(), "positive_threshold"])
+
+
 def build_track_b_pipeline(X: pd.DataFrame) -> Pipeline:
     return Pipeline(
         steps=[
@@ -165,6 +279,29 @@ def build_track_b_pipeline(X: pd.DataFrame) -> Pipeline:
                     num_leaves=29,
                     max_depth=5,
                     colsample_bytree=0.5028265220878869,
+                    min_child_samples=47,
+                    class_weight="balanced",
+                    n_jobs=1,
+                    random_state=RANDOM_STATE,
+                    verbose=-1,
+                ),
+            ),
+        ]
+    )
+
+
+def build_track_a_pipeline(X: pd.DataFrame) -> Pipeline:
+    return Pipeline(
+        steps=[
+            ("preprocessor", make_preprocessor(X)),
+            (
+                "classifier",
+                LGBMClassifier(
+                    n_estimators=800,
+                    learning_rate=0.014883605700319194,
+                    num_leaves=47,
+                    max_depth=7,
+                    colsample_bytree=0.6218455076693483,
                     min_child_samples=47,
                     class_weight="balanced",
                     n_jobs=1,
@@ -201,19 +338,32 @@ def build_track_c_pipeline(X: pd.DataFrame, quantile: float = DEFAULT_TRACK_C_QU
 
 def prepare_model_frame(df: pd.DataFrame) -> pd.DataFrame:
     prepared = add_pre_order_features(df)
-    required_cols = ["order_id", "review_score", "delivery_days", *PRE_ORDER_COLS]
+    prepared = add_post_delivery_features(prepared)
+    required_cols = list(dict.fromkeys(["order_id", "review_score", "delivery_days", *TRACK_A_COLS]))
     return prepared[required_cols].dropna(subset=["order_id", "review_score", "delivery_days"])
+
+
+def prepare_labeled_model_frame(
+    df: pd.DataFrame,
+    label_policy: str = DEFAULT_LABEL_POLICY,
+) -> pd.DataFrame:
+    model_df = prepare_model_frame(df)
+    model_df["review_label"] = review_risk_target(model_df["review_score"], label_policy=label_policy)
+    model_df = model_df.dropna(subset=["review_label"]).copy()
+    model_df["review_label"] = model_df["review_label"].astype(int)
+    return model_df
 
 
 def train_models(
     df: pd.DataFrame,
     quantile: float = DEFAULT_TRACK_C_QUANTILE,
     feature_cols: Iterable[str] = PRE_ORDER_COLS,
+    label_policy: str = DEFAULT_LABEL_POLICY,
 ) -> TrainedModels:
-    model_df = prepare_model_frame(df)
+    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
     feature_cols = list(feature_cols)
     X = model_df[feature_cols]
-    y_track_b = review_risk_target(model_df["review_score"])
+    y_track_b = model_df["review_label"]
     y_track_c = model_df["delivery_days"]
 
     track_b = build_track_b_pipeline(X)
@@ -226,6 +376,7 @@ def train_models(
         track_b=track_b,
         track_c=track_c,
         feature_cols=feature_cols,
+        label_policy=label_policy,
         track_c_quantile=quantile,
     )
 
@@ -279,10 +430,11 @@ def train_console_artifacts(
     quantile: float = DEFAULT_TRACK_C_QUANTILE,
     risk_threshold: float = TRACK_B_RISK_THRESHOLD,
     caution_threshold: float = TRACK_B_CAUTION_RISK_THRESHOLD,
+    label_policy: str = DEFAULT_LABEL_POLICY,
 ) -> ConsoleArtifacts:
-    model_df = prepare_model_frame(df)
+    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
     X = model_df[PRE_ORDER_COLS]
-    y_track_b = review_risk_target(model_df["review_score"])
+    y_track_b = model_df["review_label"]
     y_track_c = model_df["delivery_days"]
     groups = model_df["order_id"]
     X_train, X_test, y_train_b, _, _, _ = split_by_order(X, y_track_b, groups)
@@ -298,6 +450,7 @@ def train_console_artifacts(
         track_b=track_b,
         track_c=track_c,
         feature_cols=PRE_ORDER_COLS,
+        label_policy=label_policy,
         track_c_quantile=quantile,
     )
 
@@ -335,25 +488,173 @@ def train_console_artifacts(
     )
 
 
-def evaluate_track_b(df: pd.DataFrame) -> dict[str, float]:
-    model_df = prepare_model_frame(df)
+def risk_classification_metrics(
+    y_true: pd.Series,
+    positive_proba: np.ndarray,
+    positive_threshold: float = TRACK_B_POSITIVE_THRESHOLD,
+) -> dict[str, float]:
+    pred = (positive_proba >= positive_threshold).astype(int)
+    risk_true = (y_true.to_numpy() == 0).astype(int)
+    risk_pred = (pred == 0).astype(int)
+    risk_proba = 1 - positive_proba
+
+    return {
+        "positive_threshold": positive_threshold,
+        "risk_threshold": 1 - positive_threshold,
+        "accuracy": float(accuracy_score(y_true, pred)),
+        "balanced_acc": float(balanced_accuracy_score(y_true, pred)),
+        "risk_precision": float(precision_score(risk_true, risk_pred, zero_division=0)),
+        "risk_recall": float(recall_score(risk_true, risk_pred, zero_division=0)),
+        "risk_pr_auc": float(average_precision_score(risk_true, risk_proba)),
+        "flagged_rate": float(risk_pred.mean()),
+        "macro_f1": float(f1_score(y_true, pred, average="macro")),
+    }
+
+
+def label_distribution(
+    model_df: pd.DataFrame,
+    source_rows: int,
+    label_policy: str,
+) -> dict[str, float | int | str]:
+    review_counts = model_df["review_score"].value_counts().sort_index()
+    return {
+        "label_policy": label_policy,
+        "description": LABEL_POLICY_DESCRIPTIONS[label_policy],
+        "source_rows": int(source_rows),
+        "modeled_rows": int(len(model_df)),
+        "dropped_rows": int(source_rows - len(model_df)),
+        "dropped_rate": float((source_rows - len(model_df)) / source_rows),
+        "risk_rows": int((model_df["review_label"] == 0).sum()),
+        "positive_rows": int((model_df["review_label"] == 1).sum()),
+        "risk_rate": float((model_df["review_label"] == 0).mean()),
+        "positive_rate": float((model_df["review_label"] == 1).mean()),
+        "review_1_rows": int(review_counts.get(1, 0)),
+        "review_2_rows": int(review_counts.get(2, 0)),
+        "review_3_rows": int(review_counts.get(3, 0)),
+        "review_4_rows": int(review_counts.get(4, 0)),
+        "review_5_rows": int(review_counts.get(5, 0)),
+    }
+
+
+def evaluate_track_b(
+    df: pd.DataFrame,
+    label_policy: str = DEFAULT_LABEL_POLICY,
+) -> dict[str, float | int | str]:
+    source_frame = prepare_model_frame(df)
+    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
     X = model_df[PRE_ORDER_COLS]
-    y = review_risk_target(model_df["review_score"])
+    y = model_df["review_label"]
     groups = model_df["order_id"]
-    X_train, X_test, y_train, y_test, _, _ = split_by_order(X, y, groups)
+    X_train, X_valid, X_test, y_train, y_valid, y_test, _, _, groups_test = (
+        split_train_valid_test_by_order(X, y, groups)
+    )
 
     model = build_track_b_pipeline(X_train)
     model.fit(X_train, y_train)
+    valid_proba = model.predict_proba(X_valid)[:, 1]
+    positive_threshold = select_positive_threshold(y_valid, valid_proba)
     positive_proba = model.predict_proba(X_test)[:, 1]
-    pred = (positive_proba >= TRACK_B_POSITIVE_THRESHOLD).astype(int)
 
-    return {
-        "positive_threshold": TRACK_B_POSITIVE_THRESHOLD,
-        "accuracy": float((pred == y_test).mean()),
-        "balanced_acc": float(balanced_accuracy_score(y_test, pred)),
-        "neg_recall": float(recall_score(y_test, pred, pos_label=0)),
-        "macro_f1": float(f1_score(y_test, pred, average="macro")),
-    }
+    metrics = risk_classification_metrics(
+        y_test,
+        positive_proba,
+        positive_threshold=positive_threshold,
+    )
+    metrics.update(label_distribution(model_df, len(source_frame), label_policy))
+    metrics["track"] = "Track B (LightGBM, 사전 예측)"
+    metrics["n_features"] = len(PRE_ORDER_COLS)
+    metrics["test_rows"] = int(len(y_test))
+    metrics["test_orders"] = int(groups_test.nunique())
+    return metrics
+
+
+def evaluate_track_a_vs_b(
+    df: pd.DataFrame,
+    label_policy: str = DEFAULT_LABEL_POLICY,
+) -> pd.DataFrame:
+    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
+    y = model_df["review_label"]
+    groups = model_df["order_id"]
+    rows = []
+
+    for track, feature_cols, builder in [
+        ("Track A (LightGBM, 사후 원인분석)", TRACK_A_COLS, build_track_a_pipeline),
+        ("Track B (LightGBM, 사전 예측)", PRE_ORDER_COLS, build_track_b_pipeline),
+    ]:
+        X = model_df[feature_cols]
+        X_train, X_valid, X_test, y_train, y_valid, y_test, _, _, groups_test = (
+            split_train_valid_test_by_order(X, y, groups)
+        )
+        model = builder(X_train)
+        model.fit(X_train, y_train)
+        valid_proba = model.predict_proba(X_valid)[:, 1]
+        positive_threshold = select_positive_threshold(y_valid, valid_proba)
+        positive_proba = model.predict_proba(X_test)[:, 1]
+        row = risk_classification_metrics(
+            y_test,
+            positive_proba,
+            positive_threshold=positive_threshold,
+        )
+        row.update(
+            {
+                "label_policy": label_policy,
+                "track": track,
+                "n_features": len(feature_cols),
+                "test_rows": int(len(y_test)),
+                "test_orders": int(groups_test.nunique()),
+            }
+        )
+        rows.append(row)
+
+    X_baseline = model_df[PRE_ORDER_COLS]
+    _, _, X_test_b, y_train_b, _, y_test_b, _, _, groups_test_b = split_train_valid_test_by_order(
+        X_baseline,
+        y,
+        groups,
+    )
+    majority_label = int(y_train_b.mode().iloc[0])
+    baseline_positive_proba = np.full(len(y_test_b), float(majority_label))
+    row = risk_classification_metrics(y_test_b, baseline_positive_proba)
+    row.update(
+        {
+            "label_policy": label_policy,
+            "track": "Baseline (다수 클래스)",
+            "n_features": 0,
+            "test_rows": int(len(y_test_b)),
+            "test_orders": int(groups_test_b.nunique()),
+        }
+    )
+    rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def evaluate_label_policies(df: pd.DataFrame) -> pd.DataFrame:
+    source_frame = prepare_model_frame(df)
+    rows = []
+
+    for policy in LABEL_POLICY_DESCRIPTIONS:
+        model_df = prepare_labeled_model_frame(df, label_policy=policy)
+        track_b_metrics = evaluate_track_b(df, label_policy=policy)
+        baseline_row = evaluate_track_a_vs_b(df, label_policy=policy)
+        baseline_metrics = baseline_row[baseline_row["track"] == "Baseline (다수 클래스)"].iloc[0]
+        row = label_distribution(model_df, len(source_frame), policy)
+        row.update(
+            {
+                "baseline_accuracy": float(baseline_metrics["accuracy"]),
+                "baseline_balanced_acc": float(baseline_metrics["balanced_acc"]),
+                "baseline_risk_recall": float(baseline_metrics["risk_recall"]),
+                "track_b_accuracy": float(track_b_metrics["accuracy"]),
+                "track_b_balanced_acc": float(track_b_metrics["balanced_acc"]),
+                "track_b_risk_precision": float(track_b_metrics["risk_precision"]),
+                "track_b_risk_recall": float(track_b_metrics["risk_recall"]),
+                "track_b_risk_pr_auc": float(track_b_metrics["risk_pr_auc"]),
+                "track_b_flagged_rate": float(track_b_metrics["flagged_rate"]),
+            }
+        )
+        rows.append(row)
+
+    return pd.DataFrame(rows)
 
 
 def evaluate_track_c_quantiles(
@@ -403,10 +704,11 @@ def make_recommendation_examples(
     high_risk_only: bool = True,
     risk_threshold: float = TRACK_B_RISK_THRESHOLD,
     caution_threshold: float = TRACK_B_CAUTION_RISK_THRESHOLD,
+    label_policy: str = DEFAULT_LABEL_POLICY,
 ) -> pd.DataFrame:
-    model_df = prepare_model_frame(df)
+    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
     X = model_df[PRE_ORDER_COLS]
-    y = review_risk_target(model_df["review_score"])
+    y = model_df["review_label"]
     groups = model_df["order_id"]
     X_train, X_test, y_train, _, _, _ = split_by_order(X, y, groups)
 
