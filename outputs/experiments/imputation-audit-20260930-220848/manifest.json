@@ -1,0 +1,234 @@
+{
+  "status": "complete",
+  "started_at": "2026-09-30T22:08:48.753411+09:00",
+  "python": "3.9.6",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "packages": {
+    "pandas": "2.3.3",
+    "numpy": "2.0.2",
+    "scikit-learn": "1.6.1",
+    "scipy": "1.13.1",
+    "lightgbm": "4.6.0"
+  },
+  "input_sha256": {
+    "data/processed/ml_data.csv": "1035458750d9c3f63c0e7f45a4bc6b42c5867d7daab81530d896c8bb46b66c3e",
+    "data/processed/merged_data.csv": "7044a75c24cdbe2b43b6bbe27b3ce0f711384918326635093934a4a2419f5eef",
+    "outputs/tables/track_a_vs_b_comparison.csv": "fdbea2ec3a5a00f4d8f664d293918ff8ab839fbf81342969c7a21955c8e5f8c5",
+    "src/olist_delivery_models.py": "ed6383e88ff466744015e15ec3feed15b532125f98dd1ddf7b5cd08bc6fe6663",
+    "scripts/audit_imputation_comparison.py": "00a39c7c251e6ac058666f7cc2a2cc59bbc30491aa59ed2fe32e906d7dd81e15"
+  },
+  "git_head": "23d9009d17fe44af985aec4322d08fd84c3f1dc1",
+  "git_status_before_training": " M README.md\n M docs/modeling_decision_log.md\n M notebooks/01_preprocessing.ipynb\n M notebooks/02_eda.ipynb\n M notebooks/03_ml_classifier.ipynb\n M outputs/charts/delay_review_threshold_bar.png\n M outputs/charts/portfolio_delay_review_gap.png\n M outputs/tables/delay_threshold_test_summary.csv\n?? outputs/experiments/\n?? scripts/audit_imputation_comparison.py\n",
+  "label_policy": "1_2_negative_4_5_positive_drop_3",
+  "split": {
+    "random_state": 42,
+    "test_size": 0.2,
+    "valid_fraction_of_remaining": 0.2
+  },
+  "models": {
+    "A": {
+      "features": [
+        "order_item_id",
+        "price",
+        "freight_value",
+        "freight_ratio",
+        "total_price",
+        "product_weight_g",
+        "product_length_cm",
+        "product_height_cm",
+        "product_width_cm",
+        "order_purchase_dayofweek",
+        "order_purchase_month",
+        "expected_delivery_days",
+        "main_category",
+        "sub_category",
+        "distance_km",
+        "distance_cat",
+        "cross_state",
+        "is_sp_customer",
+        "is_sp_seller",
+        "sp_route_type",
+        "sp_route_type_customer",
+        "sp_route_type_seller",
+        "approved_days",
+        "dispatch_days",
+        "delivery_days",
+        "delay_days",
+        "is_delayed",
+        "delay_days_cat",
+        "delivery_speed",
+        "day_per_km",
+        "delivery_ratio",
+        "delivery_distance",
+        "delivery_price"
+      ],
+      "positive_threshold": 0.6099999999999998,
+      "classifier": {
+        "boosting_type": "gbdt",
+        "class_weight": "balanced",
+        "colsample_bytree": 0.6218455076693483,
+        "importance_type": "split",
+        "learning_rate": 0.014883605700319194,
+        "max_depth": 7,
+        "min_child_samples": 47,
+        "min_child_weight": 0.001,
+        "min_split_gain": 0.0,
+        "n_estimators": 800,
+        "n_jobs": 1,
+        "num_leaves": 47,
+        "objective": null,
+        "random_state": 42,
+        "reg_alpha": 0.0,
+        "reg_lambda": 0.0,
+        "subsample": 1.0,
+        "subsample_for_bin": 200000,
+        "subsample_freq": 0,
+        "verbose": -1
+      }
+    },
+    "B": {
+      "features": [
+        "order_item_id",
+        "price",
+        "freight_value",
+        "freight_ratio",
+        "total_price",
+        "product_weight_g",
+        "product_length_cm",
+        "product_height_cm",
+        "product_width_cm",
+        "order_purchase_dayofweek",
+        "order_purchase_month",
+        "expected_delivery_days",
+        "main_category",
+        "sub_category",
+        "distance_km",
+        "distance_cat",
+        "cross_state",
+        "is_sp_customer",
+        "is_sp_seller",
+        "sp_route_type",
+        "sp_route_type_customer",
+        "sp_route_type_seller"
+      ],
+      "positive_threshold": 0.5399999999999998,
+      "classifier": {
+        "boosting_type": "gbdt",
+        "class_weight": "balanced",
+        "colsample_bytree": 0.5028265220878869,
+        "importance_type": "split",
+        "learning_rate": 0.011153121252070788,
+        "max_depth": 5,
+        "min_child_samples": 47,
+        "min_child_weight": 0.001,
+        "min_split_gain": 0.0,
+        "n_estimators": 800,
+        "n_jobs": 1,
+        "num_leaves": 29,
+        "objective": null,
+        "random_state": 42,
+        "reg_alpha": 0.0,
+        "reg_lambda": 0.0,
+        "subsample": 1.0,
+        "subsample_for_bin": 200000,
+        "subsample_freq": 0,
+        "verbose": -1
+      }
+    }
+  },
+  "note": "Sensitivity comparison on previously inspected test set; no new generalization claim.",
+  "completed_at": "2026-09-30T22:08:59.963148+09:00",
+  "prediction_metrics_verified": true,
+  "inputs_preserved": true,
+  "comparisons": [
+    {
+      "track": "A",
+      "split": "valid",
+      "metric_delta": {
+        "accuracy": -0.001061239777763956,
+        "balanced_acc": -0.0010848177906367384,
+        "risk_precision": -0.0010548337928782403,
+        "risk_recall": -0.0011202389843166793,
+        "risk_pr_auc": 0.0018088964373651484,
+        "flagged_rate": 0.0006866845620825401,
+        "macro_f1": -0.0010256064802676157
+      },
+      "prediction_changes": 605
+    },
+    {
+      "track": "A",
+      "split": "test",
+      "metric_delta": {
+        "accuracy": -0.0019514635976982664,
+        "balanced_acc": -0.0035001244862949976,
+        "risk_precision": -0.0025504794394246577,
+        "risk_recall": -0.0057544757033248795,
+        "risk_pr_auc": -0.0005346822818057539,
+        "flagged_rate": 0.0001501125844383111,
+        "macro_f1": -0.002441083062770022
+      },
+      "prediction_changes": 727
+    },
+    {
+      "track": "B",
+      "split": "valid",
+      "metric_delta": {
+        "accuracy": 0.0009988139084836645,
+        "balanced_acc": -0.0005941691816974126,
+        "risk_precision": -1.5077839345623012e-05,
+        "risk_recall": -0.0029873039581777006,
+        "risk_pr_auc": -0.0024021026759379893,
+        "flagged_rate": -0.0019976278169673845,
+        "macro_f1": 0.0002885067914164541
+      },
+      "prediction_changes": 248
+    },
+    {
+      "track": "B",
+      "split": "test",
+      "metric_delta": {
+        "accuracy": 0.0007505629221916665,
+        "balanced_acc": -0.0007267484862512053,
+        "risk_precision": -0.00015303605147665156,
+        "risk_recall": -0.0028772378516624952,
+        "risk_pr_auc": 0.0003021932037593489,
+        "flagged_rate": -0.0016512384288215887,
+        "macro_f1": 0.00011533986494760562
+      },
+      "prediction_changes": 295
+    }
+  ],
+  "historical_comparison": [
+    {
+      "track": "A",
+      "new_existing_minus_historical": {
+        "accuracy": 0.0,
+        "balanced_acc": 0.0,
+        "risk_precision": 0.0,
+        "risk_recall": 0.0,
+        "risk_pr_auc": 0.0,
+        "flagged_rate": 0.0,
+        "macro_f1": 0.0
+      }
+    },
+    {
+      "track": "B",
+      "new_existing_minus_historical": {
+        "accuracy": 0.0,
+        "balanced_acc": 0.0,
+        "risk_precision": 0.0,
+        "risk_recall": 0.0,
+        "risk_pr_auc": 0.0,
+        "flagged_rate": 0.0,
+        "macro_f1": 0.0
+      }
+    }
+  ],
+  "output_sha256": {
+    "imputation_audit.json": "acf0cc707ed07bd0f4e531fb4c9a957d42356629567699de60084a2d239ec634",
+    "comparison.md": "96e97b36c88c95280667af864d54f6bfefe4075463c8c43c959e01206c4969bf",
+    "predictions.csv": "b572fbcc5411fa21acf8756786e5ff1d33bb2ed900f4ff0ccc1ad38a4d559212",
+    "metrics.csv": "ee75a909b86880c31cef3a835302721ac6e630bd73d8a9dc0beb2202715d56e1",
+    "split_assignments.csv": "03cd6c7acf22f768faf113050f4925eefe0be42591a26c4490355736b57ad06f"
+  }
+}
