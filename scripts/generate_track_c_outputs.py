@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 import json
 import sys
 
@@ -20,11 +21,13 @@ from src.olist_delivery_models import (
 
 
 DATA_PATH = PROJECT_ROOT / "data" / "processed" / "ml_data.csv"
-TABLE_DIR = PROJECT_ROOT / "outputs" / "tables"
-METADATA_DIR = PROJECT_ROOT / "outputs" / "metadata"
+RUN_DIR = PROJECT_ROOT / "outputs" / "experiments" / datetime.now().strftime("generated-tracks-%Y%m%d-%H%M%S")
+TABLE_DIR = RUN_DIR / "tables"
+METADATA_DIR = RUN_DIR / "metadata"
 
 
 def main() -> None:
+    RUN_DIR.mkdir(parents=True, exist_ok=False)
     TABLE_DIR.mkdir(parents=True, exist_ok=True)
     METADATA_DIR.mkdir(parents=True, exist_ok=True)
     df = load_ml_data(DATA_PATH)
@@ -41,6 +44,7 @@ def main() -> None:
     examples.to_csv(TABLE_DIR / "track_c_recommendation_examples.csv", index=False)
 
     summary = {
+        "preprocessing_scope": {"track_a_b": "train_only_pipeline", "track_c_and_ui": "legacy_not_migrated"},
         "selected_label_policy": DEFAULT_LABEL_POLICY,
         "selected_label_policy_description": LABEL_POLICY_DESCRIPTIONS[DEFAULT_LABEL_POLICY],
         "selected_track_a_model": "LightGBM",

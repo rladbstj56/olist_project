@@ -1,0 +1,53 @@
+{
+  "status": "complete",
+  "timestamp": "2026-10-01T10:14:15.002954+09:00",
+  "git_head_before_commit": "a1145c7fd7f5d7a5b348427b1182ad22b5a28458",
+  "python": "3.9.6",
+  "packages": {
+    "pandas": "2.3.3",
+    "numpy": "2.0.2",
+    "scikit-learn": "1.6.1",
+    "lightgbm": "4.6.0"
+  },
+  "checks": [
+    {
+      "track": "A",
+      "split": "valid",
+      "max_probability_difference_from_audit": 0.0
+    },
+    {
+      "track": "A",
+      "split": "test",
+      "max_probability_difference_from_audit": 0.0
+    },
+    {
+      "track": "B",
+      "split": "valid",
+      "max_probability_difference_from_audit": 0.0
+    },
+    {
+      "track": "B",
+      "split": "test",
+      "max_probability_difference_from_audit": 0.0
+    }
+  ],
+  "code_sha256": {
+    "src/olist_delivery_models.py": "fcb3e906e221095f2b5f9cc091291d78a8d2e029f391930fad7ecc94e62fb90e",
+    "src/olist_imputation.py": "a539c96c06ee4ef51d262bc5a079f5468c26a2b7ca840a362066dfbd72427d43",
+    "notebooks/03_ml_classifier.ipynb": "88702dfea52f913f31c62ec491f78d2e72656839f4b729a39f4c3f19a830c0e0",
+    "tests/test_training_imputation.py": "65f5b21f58ce5cd9f316a05c876ad0d2e306a6f8132969a39c490df986cffb69"
+  },
+  "reference_manifest_sha256": "503effc13ddf91fde0d1dd8aecb5e746d96731fce7b0a126f66f6b9abb7aac4a",
+  "final_code_sha256": {
+    "src/olist_delivery_models.py": "fcb3e906e221095f2b5f9cc091291d78a8d2e029f391930fad7ecc94e62fb90e",
+    "src/olist_imputation.py": "a539c96c06ee4ef51d262bc5a079f5468c26a2b7ca840a362066dfbd72427d43",
+    "notebooks/03_ml_classifier.ipynb": "7873c00a02ec528817d46bd7752410453dbe3f041fb3d008813b1dc0c63cba24",
+    "tests/test_training_imputation.py": "65f5b21f58ce5cd9f316a05c876ad0d2e306a6f8132969a39c490df986cffb69"
+  },
+  "post_run_change": "Notebook comments only: distinguish historical search evidence; training code unchanged.",
+  "artifact_sha256": {
+    "predictions.csv": "a881c49273dac99946f3dcd16fd84758a916638535538d8eaa76646e1bd9ea9a",
+    "metrics.csv": "2e2c81530311b7f6b68f02d6b4ce6e3abc3918519e00c2dc75c5b826c8bd7646",
+    "verification_script.py": "952f3e1dc9f92bb42d96d3fdc5ca49747ab8e3366372e7838070515a0dc5c1c2"
+  }
+}

@@ -88,6 +88,8 @@ Mann–Whitney U는 평균 차이 1.83점 자체를 검정한 것이 아닙니�
 
 ### 5.3 모델 성능
 
+아래 A/B 성능표와 5.3.1 정책 비교표는 수정 전 전처리의 보존 기록입니다. 2026-10-01부터 A/B 평가·학습 노트북에는 학습 전용 결측 대체를 적용합니다. 수정 후 검증 결과와 재현 방법은 아래 10절을 따릅니다.
+
 아래 성능과 Flagged Rate는 모두 주문·아이템 행 기준입니다. 여러 아이템이 있는 주문은 평가에 여러 번 반영되므로 주문별 성능이나 실제 검토 업무량으로 직접 환산할 수 없습니다.
 
 긍정 리뷰 비율이 높은 불균형 데이터이므로, 단순 정확도보다 낮은 만족도 리뷰 재현율, 정밀도, PR-AUC, 균형 정확도, 운영 개입 대상 비율을 함께 봤습니다.
@@ -307,3 +309,25 @@ python -m streamlit run streamlit_app.py
 - `archive/reference_models/`: 최종 모델로 채택하지 않은 참고 모델
 
 자세한 구분은 [archive/README.md](archive/README.md)에 정리했습니다. 최종 재현과 검토는 `notebooks/`, `data/`, `outputs/`, `docs/`를 기준으로 합니다.
+
+
+## 10. A/B 학습 전용 결측 대체 반영 — 2026-10-01
+
+`src/olist_imputation.py`의 `TrainOnlyImputer`를 A/B 학습 파이프라인에 넣었습니다. 도시별 좌표 최빈값·상품 중앙값·거리 중앙값은 `fit`에 전달된 학습 행에서만 계산하고 검증·테스트에는 적용만 합니다. 교차검증에서도 fold별로 통계를 다시 계산합니다. 미등록 도시의 좌표는 결측으로 두고 남은 거리를 학습 거리 중앙값으로 대체합니다.
+
+- 입력: 기존 `data/processed/ml_data.csv`와 대체 전 원본 `data/processed/merged_data.csv`. 두 파일을 주문·아이템 복합키로 일대일 연결합니다. 원본 보조 열은 대체 후 제거되어 A 33개·B 22개 피처를 유지합니다.
+- 진입점: `prepare_corrected_model_frame` → `build_corrected_track_pipeline` → 학습. `evaluate_track_a_vs_b`, `evaluate_track_b`, `evaluate_label_policies`도 이 경로를 사용합니다. 외부 입력은 `raw_data`로 대응 원본을 제공할 수 있습니다.
+- 노트북: `03_ml_classifier.ipynb`도 같은 전처리를 사용합니다. 기존 `ml_data.csv`를 덮어쓰지 않으며 비교표는 `outputs/experiments/ab-notebook-실행시각/`에 저장합니다. 수정 전 학습 출력은 커밋 `a1145c7`에 보존하고 현재 노트북에서는 제거했습니다. 전체 노트북·하이퍼파라미터 탐색은 재실행하지 않았습니다.
+- 생성 스크립트의 출력은 `outputs/experiments/generated-tracks-실행시각/`로 분리했습니다. 이 스크립트는 이번 검증에서 실행하지 않았습니다.
+- **UI·Track C 및 기존 저수준 모델 빌더는 종전 경로입니다.** 새 A/B 평가 결과를 UI의 검증 성능으로 사용하지 않습니다. EDA 스냅샷·과거 성능표·포트폴리오는 그대로 보존합니다.
+
+실제 A/B 학습의 검증·테스트 확률은 앞선 학습 전용 대체 실험과 최대 차이 0이었습니다. 동일 분할에서의 구현 재현 검증이며 새 일반화 성능 인증은 아닙니다.
+
+| 수정 후 테스트 지표 | Track A | Track B |
+|---|---:|---:|
+| 위험 정밀도 | 0.284381 | 0.234436 |
+| 위험 재현율 | 0.672315 | 0.616368 |
+| AP | 0.504897 | 0.289564 |
+| 균형 정확도 | 0.679190 | 0.621437 |
+
+검증 명령은 `python3 -m unittest discover -s tests -v`이며 로컬 처리 데이터가 필요합니다. [실행 산출물](outputs/experiments/ab-pipeline-verification-20261001-101407/manifest.json)에 환경·코드 해시를 기록했습니다. 해당 폴더의 `verification_script.py`를 저장소 루트에서 실행하면 A/B를 다시 학습하고 별도 실행 폴더에 지표·예측을 저장합니다. [결정 로그 26절](docs/modeling_decision_log.md#26-ab-본-학습-경로-수정--2026-10-01)에 변경 범위와 한계가 있습니다.

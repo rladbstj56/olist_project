@@ -30,6 +30,8 @@ from sklearn.model_selection import GroupShuffleSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
+from .olist_imputation import RAW_INPUT_COLS, TrainOnlyImputer, attach_raw_imputation_columns
+
 
 TRACK_B_POSITIVE_THRESHOLD = 0.54
 TRACK_B_RISK_THRESHOLD = 1 - TRACK_B_POSITIVE_THRESHOLD
@@ -313,6 +315,29 @@ def build_track_a_pipeline(X: pd.DataFrame) -> Pipeline:
     )
 
 
+def prepare_corrected_model_frame(
+    df: pd.DataFrame,
+    label_policy: str = DEFAULT_LABEL_POLICY,
+    raw_data: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Attach unimputed source values without learning any replacement statistics."""
+    if raw_data is None:
+        raw_data = pd.read_csv(Path(__file__).resolve().parents[1] / "data/processed/merged_data.csv")
+    return attach_raw_imputation_columns(prepare_labeled_model_frame(df, label_policy), raw_data)
+
+
+def build_corrected_track_pipeline(X: pd.DataFrame, track: str) -> Pipeline:
+    """A/B augmented features -> fold-local imputation followed by the existing estimator."""
+    if track == "A":
+        columns, builder = TRACK_A_COLS, build_track_a_pipeline
+    elif track == "B":
+        columns, builder = PRE_ORDER_COLS, build_track_b_pipeline
+    else:
+        raise ValueError("track must be A or B")
+    legacy = builder(X[columns])
+    return Pipeline([("train_only_imputation", TrainOnlyImputer(tuple(columns))), *legacy.steps])
+
+
 def build_track_c_pipeline(X: pd.DataFrame, quantile: float = DEFAULT_TRACK_C_QUANTILE) -> Pipeline:
     return Pipeline(
         steps=[
@@ -539,17 +564,18 @@ def label_distribution(
 def evaluate_track_b(
     df: pd.DataFrame,
     label_policy: str = DEFAULT_LABEL_POLICY,
+    raw_data: pd.DataFrame | None = None,
 ) -> dict[str, float | int | str]:
     source_frame = prepare_model_frame(df)
-    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
-    X = model_df[PRE_ORDER_COLS]
+    model_df = prepare_corrected_model_frame(df, label_policy=label_policy, raw_data=raw_data)
+    X = model_df[PRE_ORDER_COLS + RAW_INPUT_COLS]
     y = model_df["review_label"]
     groups = model_df["order_id"]
     X_train, X_valid, X_test, y_train, y_valid, y_test, _, _, groups_test = (
         split_train_valid_test_by_order(X, y, groups)
     )
 
-    model = build_track_b_pipeline(X_train)
+    model = build_corrected_track_pipeline(X_train, "B")
     model.fit(X_train, y_train)
     valid_proba = model.predict_proba(X_valid)[:, 1]
     positive_threshold = select_positive_threshold(y_valid, valid_proba)
@@ -571,21 +597,22 @@ def evaluate_track_b(
 def evaluate_track_a_vs_b(
     df: pd.DataFrame,
     label_policy: str = DEFAULT_LABEL_POLICY,
+    raw_data: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
+    model_df = prepare_corrected_model_frame(df, label_policy=label_policy, raw_data=raw_data)
     y = model_df["review_label"]
     groups = model_df["order_id"]
     rows = []
 
-    for track, feature_cols, builder in [
-        ("Track A (LightGBM, 사후 원인분석)", TRACK_A_COLS, build_track_a_pipeline),
-        ("Track B (LightGBM, 사전 예측)", PRE_ORDER_COLS, build_track_b_pipeline),
+    for track, feature_cols, track_id in [
+        ("Track A (LightGBM, 사후 원인분석)", TRACK_A_COLS, "A"),
+        ("Track B (LightGBM, 사전 예측)", PRE_ORDER_COLS, "B"),
     ]:
-        X = model_df[feature_cols]
+        X = model_df[feature_cols + RAW_INPUT_COLS]
         X_train, X_valid, X_test, y_train, y_valid, y_test, _, _, groups_test = (
             split_train_valid_test_by_order(X, y, groups)
         )
-        model = builder(X_train)
+        model = build_corrected_track_pipeline(X_train, track_id)
         model.fit(X_train, y_train)
         valid_proba = model.predict_proba(X_valid)[:, 1]
         positive_threshold = select_positive_threshold(y_valid, valid_proba)
@@ -629,14 +656,14 @@ def evaluate_track_a_vs_b(
     return pd.DataFrame(rows)
 
 
-def evaluate_label_policies(df: pd.DataFrame) -> pd.DataFrame:
+def evaluate_label_policies(df: pd.DataFrame, raw_data: pd.DataFrame | None = None) -> pd.DataFrame:
     source_frame = prepare_model_frame(df)
     rows = []
 
     for policy in LABEL_POLICY_DESCRIPTIONS:
         model_df = prepare_labeled_model_frame(df, label_policy=policy)
-        track_b_metrics = evaluate_track_b(df, label_policy=policy)
-        baseline_row = evaluate_track_a_vs_b(df, label_policy=policy)
+        track_b_metrics = evaluate_track_b(df, label_policy=policy, raw_data=raw_data)
+        baseline_row = evaluate_track_a_vs_b(df, label_policy=policy, raw_data=raw_data)
         baseline_metrics = baseline_row[baseline_row["track"] == "Baseline (다수 클래스)"].iloc[0]
         row = label_distribution(model_df, len(source_frame), policy)
         row.update(
