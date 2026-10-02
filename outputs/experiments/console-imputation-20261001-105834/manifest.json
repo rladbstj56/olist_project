@@ -1,0 +1,46 @@
+{
+  "baseline_commit": "78653c7",
+  "head_before_run": "78653c7efc203629a98ca8b136b0a935c5cccceb",
+  "timestamp": "2026-10-01T10:59:03.546690+09:00",
+  "fits": 10,
+  "risk_threshold": 0.45999999999999996,
+  "python": "3.9.6",
+  "packages": {
+    "numpy": "2.0.2",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.6.1",
+    "lightgbm": "4.6.0",
+    "streamlit": "1.50.0"
+  },
+  "checks": {
+    "manual_batch_and_display_prediction_parity": true,
+    "test_item_rows": 19985
+  },
+  "statistics": {
+    "ui_distance_median": 428.9974892020914,
+    "c_evaluation_distance_median": 431.950087901222
+  },
+  "input_and_code_sha256": {
+    "src/olist_delivery_models.py": "5a8086d9a0e41760a384779a6e37026330fffcbe6533850e22fdee564f721768",
+    "src/olist_imputation.py": "865eadd69fefa9739ca95df9775ce5e64127c1183219596aa61a699daccd78f5",
+    "streamlit_app.py": "2367a104aab1285fc22ee90fca346a0ff9dbffa9761b98afd47b5c1905800d15",
+    "scripts/audit_console_imputation.py": "b87c5c95caa12ed815e688f239811eb3c66a411820f91ba60ddfbfe97e407bcb",
+    "data/processed/ml_data.csv": "1035458750d9c3f63c0e7f45a4bc6b42c5867d7daab81530d896c8bb46b66c3e",
+    "data/processed/merged_data.csv": "7044a75c24cdbe2b43b6bbe27b3ce0f711384918326635093934a4a2419f5eef"
+  },
+  "artifact_sha256": {
+    "comparison.md": "4cd236b20a65bac0c5512ffc067ab42427053b31d3ffadba1b06673fd8d2b2c7",
+    "predictions.csv": "98df09e6a2f5abdcf96954c0dbcd060bed24ea8bc2356fab3391a8acf83f6787",
+    "metrics.csv": "35c2a1187cca0c97e32222e7f3fdfb3fb8eff62c96fac797b9bde3d03ead233f",
+    "verify_ui.py": "6976ed1116ea824418db03e4a6b60dfc254af5c666069fb6db597a32cf375560",
+    "split_assignments.csv": "211c5c4ae0025df0ce4f01ffe0e0a640cf2bb21e8ed9902d7836d21ed85ddc6d",
+    "ui_verification.json": "24bd1cdd99b48ea2f5511370a70e90ba9754ff2c57ccc0205699d7e459fe82b4"
+  },
+  "final_code_sha256": {
+    "src/olist_delivery_models.py": "1c89de84a09798877e74526655da177e1b40285fa29458b94c71fb7695ebeb0d",
+    "src/olist_imputation.py": "865eadd69fefa9739ca95df9775ce5e64127c1183219596aa61a699daccd78f5",
+    "streamlit_app.py": "2367a104aab1285fc22ee90fca346a0ff9dbffa9761b98afd47b5c1905800d15",
+    "scripts/audit_console_imputation.py": "b87c5c95caa12ed815e688f239811eb3c66a411820f91ba60ddfbfe97e407bcb"
+  },
+  "post_run_change": "Preserve original display metadata in train_console_artifacts; no training or prediction changes. Final assembly and UI verified with cached fitted models."
+}

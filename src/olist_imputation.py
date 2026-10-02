@@ -40,6 +40,13 @@ def haversine_distance(frame: pd.DataFrame) -> pd.Series:
     return 6371 * 2 * np.arcsin(np.sqrt(a))
 
 
+def distance_category(distances):
+    """Distance Series in km -> existing right-closed distance categories."""
+    return np.select(
+        [distances <= 50, distances <= 250, distances <= 750, distances <= 1500],
+        ['Urban/Last-Mile', 'Short-Haul', 'Mid-Haul', 'Long-Haul'], default='Continental')
+
+
 class TrainOnlyImputer(TransformerMixin, BaseEstimator):
     """Estimate from fit rows only; emit fixed model features without raw helper columns."""
 
@@ -81,9 +88,7 @@ class TrainOnlyImputer(TransformerMixin, BaseEstimator):
         same = np.isclose(distances, out.distance_km, rtol=1e-12, atol=1e-9)
         distances.loc[same] = out.loc[same, 'distance_km']
         out['distance_km'] = distances
-        out['distance_cat'] = np.select(
-            [distances <= 50, distances <= 250, distances <= 750, distances <= 1500],
-            ['Urban/Last-Mile', 'Short-Haul', 'Mid-Haul', 'Long-Haul'], default='Continental')
+        out['distance_cat'] = distance_category(distances)
         if 'delivery_days' in out:
             if 'delivery_speed' in out:
                 out['delivery_speed'] = distances / out.delivery_days.replace(0, np.nan)
@@ -94,6 +99,16 @@ class TrainOnlyImputer(TransformerMixin, BaseEstimator):
         out = out.replace([np.inf, -np.inf], np.nan)
         for field in self.feature_cols:
             out[field] = out[field].astype(X[field].dtype)
+        return out
+
+    def transform_prepared_features(self, X):
+        """Manual pre-order features -> features using supplied distance, without raw coordinates."""
+        check_is_fitted(self, ['product_medians_', 'distance_median_'])
+        out = X[list(self.feature_cols)].copy().replace([np.inf, -np.inf], np.nan)
+        for field in SIZES:
+            out[field] = out[field].fillna(self.product_medians_[field])
+        out['distance_km'] = out.distance_km.fillna(self.distance_median_)
+        out['distance_cat'] = distance_category(out.distance_km)
         return out
 
     def get_feature_names_out(self, input_features=None):

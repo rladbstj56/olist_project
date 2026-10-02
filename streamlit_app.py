@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from src.olist_imputation import distance_category
+
 from src.olist_delivery_models import (
     DEFAULT_TRACK_C_QUANTILE,
     PRE_ORDER_COLS,
@@ -56,6 +58,7 @@ def option_list(df: pd.DataFrame, column: str) -> list:
 def build_input_row(values: dict) -> pd.DataFrame:
     row = pd.DataFrame([values])
     prepared = add_pre_order_features(row)
+    prepared["distance_cat"] = distance_category(prepared.distance_km)
     return prepared[PRE_ORDER_COLS]
 
 
@@ -67,7 +70,7 @@ def risk_action_text(risk_level: str, adjustment_days: float) -> list[str]:
             "CS 모니터링 대상 등록",
         ]
         if adjustment_days > 0:
-            actions.insert(1, "추천 예상 배송일 기준으로 보수적 배송 약속 검토")
+            actions.insert(1, "예상 배송일 검토값 기준으로 보수적 배송 약속 검토")
         return actions
     if risk_level == "주의":
         return [
@@ -107,7 +110,7 @@ def render_result(result: dict[str, float | str], selected_quantile: float) -> N
     metric_cols[0].metric("현재 예상 배송일", f"{current_expected_days:.0f}일")
     if is_track_c_target:
         metric_cols[1].metric(
-            "Track C 추천 예상 배송일",
+            "Track C 예상 배송일 검토값",
             f"{recommended_expected_days:.0f}일",
             f"{adjustment_days:+.0f}일",
         )
@@ -119,7 +122,7 @@ def render_result(result: dict[str, float | str], selected_quantile: float) -> N
     )
 
     if not is_track_c_target:
-        st.info("Track C 추천 예상 배송일은 Track B가 고위험으로 판정한 주문에만 운영 액션으로 적용합니다.")
+        st.info("Track C 예상 배송일 검토값은 Track B가 고위험으로 판정한 주문에만 운영 액션으로 적용합니다.")
 
     st.subheader("운영 액션")
     for action in risk_action_text(risk_level, adjustment_days):
@@ -153,7 +156,7 @@ def main() -> None:
             "Track C 분위수 기준",
             options=[int(q * 100) for q in TRACK_C_QUANTILE_OPTIONS],
             value=int(DEFAULT_TRACK_C_QUANTILE * 100),
-            help="값이 높을수록 추천 예상 배송일이 보수적으로 길어집니다.",
+            help="값이 높을수록 예상 배송일 검토값이 보수적으로 길어집니다.",
         )
 
     risk_threshold = risk_threshold_percent / 100
@@ -173,16 +176,17 @@ def main() -> None:
         st.write("- 일반: 낮은 만족도 리뷰 위험 확률이 주의 기준 이하인 주문")
         st.write("- 기본 라벨 정책: 1점·2점은 낮은 만족도, 4점·5점은 긍정, 3점은 중립으로 제외")
         st.write(f"- Track C 분위수 기준: {selected_quantile:.0%}")
-        st.write("Track C 추천 예상 배송일은 고위험 주문에만 적용합니다.")
-        st.write("기본값은 검증셋 threshold와 90% 분위수 운영 가정에 기반하며, 실제 운영에서는 CS 처리 가능량과 구매 전환 손실을 고려해 조정할 수 있습니다.")
+        st.write("Track C 예상 배송일 검토값은 고위험 주문에만 적용합니다.")
+        st.write("고위험 기본값 46%는 별도 A/B 평가의 검증 기준을 가져온 값이며, 이 UI 모델에서 재선정한 기준은 아닙니다. 90% 분위수도 운영 가정이며, 실제 운영에서는 CS 처리 가능량과 구매 전환 손실을 고려해 조정할 수 있습니다.")
 
     sample_df = console.test_orders
-    selected_order_id = st.selectbox(
-        "테스트 주문 예시",
-        sample_df["order_id"].head(500).tolist(),
+    selected_item = st.selectbox(
+        "테스트 주문·아이템 예시",
+        sample_df.head(500).index.tolist(),
+        format_func=lambda i: f"{sample_df.loc[i, 'order_id']} / 아이템 {int(sample_df.loc[i, 'order_item_id'])}",
         index=0,
     )
-    sample = sample_df.loc[sample_df["order_id"] == selected_order_id].iloc[0]
+    sample = sample_df.loc[selected_item]
 
     with st.sidebar:
         st.header("주문 입력")
@@ -269,11 +273,9 @@ def main() -> None:
             option_list(df, "seller_state"),
             index=option_list(df, "seller_state").index(sample["seller_state"]),
         )
-        distance_cat = st.selectbox(
-            "거리 구간",
-            option_list(df, "distance_cat"),
-            index=option_list(df, "distance_cat").index(sample["distance_cat"]),
-        )
+        distance_cat = distance_category(pd.Series([distance_km]))[0]
+        st.caption(f"거리 구간: {distance_cat} (입력 거리에서 자동 계산)")
+
 
     values = {
         "order_item_id": order_item_id,
@@ -312,11 +314,12 @@ def main() -> None:
 
     st.subheader("고위험 주문 관리 목록")
     st.caption(
-        f"현재 기준에서 고위험으로 분류된 테스트 주문 {len(console.high_risk_orders):,}건입니다. 이 목록이 Track C 추천 예상 배송일 검토 대상입니다."
+        f"현재 기준에서 고위험으로 분류된 테스트 주문 {len(console.high_risk_orders):,}건입니다. 주문마다 위험도가 가장 높은 아이템을 표시하며, 이 아이템의 배송일을 검토합니다."
     )
     high_risk_view = console.high_risk_orders[
         [
             "order_id",
+            "order_item_id",
             "review_risk_probability",
             "expected_delivery_days",
             "predicted_delivery_days_quantile",
@@ -338,13 +341,14 @@ def main() -> None:
         hide_index=True,
         column_config={
             "order_id": "주문 ID",
+            "order_item_id": "대표 아이템 번호",
             "review_risk_probability": st.column_config.NumberColumn("낮은 만족도 리뷰 위험 확률", format="%.1f%%"),
             "expected_delivery_days": "현재 예상 배송일",
             "predicted_delivery_days_quantile": st.column_config.NumberColumn(
                 f"{selected_quantile:.0%} 분위수 배송 소요일",
                 format="%.1f",
             ),
-            "recommended_expected_days": "추천 예상 배송일",
+            "recommended_expected_days": "예상 배송일 검토값",
             "adjustment_days": "조정일수",
             "price": "상품 가격",
             "freight_value": "배송비",

@@ -317,25 +317,32 @@ def build_track_a_pipeline(X: pd.DataFrame) -> Pipeline:
 
 def prepare_corrected_model_frame(
     df: pd.DataFrame,
-    label_policy: str = DEFAULT_LABEL_POLICY,
+    label_policy: str | None = DEFAULT_LABEL_POLICY,
     raw_data: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Attach unimputed source values without learning any replacement statistics."""
     if raw_data is None:
         raw_data = pd.read_csv(Path(__file__).resolve().parents[1] / "data/processed/merged_data.csv")
-    return attach_raw_imputation_columns(prepare_labeled_model_frame(df, label_policy), raw_data)
+    frame = prepare_model_frame(df) if label_policy is None else prepare_labeled_model_frame(df, label_policy)
+    return attach_raw_imputation_columns(frame, raw_data)
 
 
-def build_corrected_track_pipeline(X: pd.DataFrame, track: str) -> Pipeline:
-    """A/B augmented features -> fold-local imputation followed by the existing estimator."""
+def build_corrected_track_pipeline(
+    X: pd.DataFrame, track: str, quantile: float = DEFAULT_TRACK_C_QUANTILE,
+    feature_cols: Iterable[str] | None = None,
+) -> Pipeline:
+    """Augmented features -> fold-local imputation and unchanged A/B/C estimator."""
+    imputation_columns = TRACK_A_COLS if track == "A" else PRE_ORDER_COLS
+    columns = list(feature_cols) if feature_cols is not None else imputation_columns
     if track == "A":
-        columns, builder = TRACK_A_COLS, build_track_a_pipeline
+        legacy = build_track_a_pipeline(X[columns])
     elif track == "B":
-        columns, builder = PRE_ORDER_COLS, build_track_b_pipeline
+        legacy = build_track_b_pipeline(X[columns])
+    elif track == "C":
+        legacy = build_track_c_pipeline(X[columns], quantile=quantile)
     else:
-        raise ValueError("track must be A or B")
-    legacy = builder(X[columns])
-    return Pipeline([("train_only_imputation", TrainOnlyImputer(tuple(columns))), *legacy.steps])
+        raise ValueError("track must be A, B or C")
+    return Pipeline([("train_only_imputation", TrainOnlyImputer(tuple(imputation_columns))), *legacy.steps])
 
 
 def build_track_c_pipeline(X: pd.DataFrame, quantile: float = DEFAULT_TRACK_C_QUANTILE) -> Pipeline:
@@ -384,17 +391,18 @@ def train_models(
     quantile: float = DEFAULT_TRACK_C_QUANTILE,
     feature_cols: Iterable[str] = PRE_ORDER_COLS,
     label_policy: str = DEFAULT_LABEL_POLICY,
+    raw_data: pd.DataFrame | None = None,
 ) -> TrainedModels:
-    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
+    model_df = prepare_corrected_model_frame(df, label_policy=label_policy, raw_data=raw_data)
     feature_cols = list(feature_cols)
-    X = model_df[feature_cols]
+    X = model_df[PRE_ORDER_COLS + RAW_INPUT_COLS]
     y_track_b = model_df["review_label"]
     y_track_c = model_df["delivery_days"]
 
-    track_b = build_track_b_pipeline(X)
+    track_b = build_corrected_track_pipeline(X, "B", feature_cols=feature_cols)
     track_b.fit(X, y_track_b)
 
-    track_c = build_track_c_pipeline(X, quantile=quantile)
+    track_c = build_corrected_track_pipeline(X, "C", quantile=quantile, feature_cols=feature_cols)
     track_c.fit(X, y_track_c)
 
     return TrainedModels(
@@ -424,10 +432,12 @@ def predict_order(
     risk_threshold: float = TRACK_B_RISK_THRESHOLD,
     caution_threshold: float = TRACK_B_CAUTION_RISK_THRESHOLD,
 ) -> dict[str, float | str]:
-    X = order_features[models.feature_cols]
-    positive_probability = float(models.track_b.predict_proba(X)[:, 1][0])
+    X = order_features[PRE_ORDER_COLS]
+    b_input = models.track_b.named_steps["train_only_imputation"].transform_prepared_features(X)
+    c_input = models.track_c.named_steps["train_only_imputation"].transform_prepared_features(X)
+    positive_probability = float(models.track_b[1:].predict_proba(b_input)[:, 1][0])
     review_risk_probability = 1.0 - positive_probability
-    predicted_delivery_days = float(models.track_c.predict(X)[0])
+    predicted_delivery_days = float(models.track_c[1:].predict(c_input)[0])
     current_expected_days = float(X["expected_delivery_days"].iloc[0])
     is_track_c_target = review_risk_probability > risk_threshold
     recommended_expected_days = float(max(current_expected_days, np.ceil(predicted_delivery_days)))
@@ -456,19 +466,20 @@ def train_console_artifacts(
     risk_threshold: float = TRACK_B_RISK_THRESHOLD,
     caution_threshold: float = TRACK_B_CAUTION_RISK_THRESHOLD,
     label_policy: str = DEFAULT_LABEL_POLICY,
+    raw_data: pd.DataFrame | None = None,
 ) -> ConsoleArtifacts:
-    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
-    X = model_df[PRE_ORDER_COLS]
+    model_df = prepare_corrected_model_frame(df, label_policy=label_policy, raw_data=raw_data)
+    X = model_df[PRE_ORDER_COLS + RAW_INPUT_COLS]
     y_track_b = model_df["review_label"]
     y_track_c = model_df["delivery_days"]
     groups = model_df["order_id"]
     X_train, X_test, y_train_b, _, _, _ = split_by_order(X, y_track_b, groups)
     y_train_c = y_track_c.loc[X_train.index]
 
-    track_b = build_track_b_pipeline(X_train)
+    track_b = build_corrected_track_pipeline(X_train, "B")
     track_b.fit(X_train, y_train_b)
 
-    track_c = build_track_c_pipeline(X_train, quantile=quantile)
+    track_c = build_corrected_track_pipeline(X_train, "C", quantile=quantile)
     track_c.fit(X_train, y_train_c)
 
     models = TrainedModels(
@@ -486,6 +497,8 @@ def train_console_artifacts(
     adjustment = recommended - X_test["expected_delivery_days"].to_numpy()
 
     scored_test = df.loc[X_test.index].copy()
+    corrected_features = track_b.named_steps["train_only_imputation"].transform(X_test)
+    scored_test[PRE_ORDER_COLS] = corrected_features
     scored_test["review_risk_probability"] = risk_proba
     scored_test["predicted_delivery_days_quantile"] = pred_delivery
     scored_test["recommended_expected_days"] = recommended
@@ -504,7 +517,7 @@ def train_console_artifacts(
         .drop_duplicates("order_id")
         .reset_index(drop=True)
     )
-    test_orders = scored_test.drop_duplicates("order_id").reset_index(drop=True)
+    test_orders = scored_test.reset_index(drop=True)
 
     return ConsoleArtifacts(
         models=models,
@@ -687,9 +700,10 @@ def evaluate_label_policies(df: pd.DataFrame, raw_data: pd.DataFrame | None = No
 def evaluate_track_c_quantiles(
     df: pd.DataFrame,
     quantiles: Iterable[float] = (0.80, 0.90, 0.95),
+    raw_data: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    model_df = prepare_model_frame(df)
-    X = model_df[PRE_ORDER_COLS]
+    model_df = prepare_corrected_model_frame(df, label_policy=None, raw_data=raw_data)
+    X = model_df[PRE_ORDER_COLS + RAW_INPUT_COLS]
     y = model_df["delivery_days"]
     groups = model_df["order_id"]
     X_train, X_test, y_train, y_test, _, _ = split_by_order(X, y, groups)
@@ -699,7 +713,7 @@ def evaluate_track_c_quantiles(
     current_any_delay_rate = float(((y_test - X_test["expected_delivery_days"]) > 0).mean())
 
     for q in quantiles:
-        model = build_track_c_pipeline(X_train, quantile=q)
+        model = build_corrected_track_pipeline(X_train, "C", quantile=q)
         model.fit(X_train, y_train)
         pred_delivery = model.predict(X_test)
         recommended = np.maximum(X_test["expected_delivery_days"].to_numpy(), np.ceil(pred_delivery))
@@ -732,16 +746,17 @@ def make_recommendation_examples(
     risk_threshold: float = TRACK_B_RISK_THRESHOLD,
     caution_threshold: float = TRACK_B_CAUTION_RISK_THRESHOLD,
     label_policy: str = DEFAULT_LABEL_POLICY,
+    raw_data: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    model_df = prepare_labeled_model_frame(df, label_policy=label_policy)
-    X = model_df[PRE_ORDER_COLS]
+    model_df = prepare_corrected_model_frame(df, label_policy=label_policy, raw_data=raw_data)
+    X = model_df[PRE_ORDER_COLS + RAW_INPUT_COLS]
     y = model_df["review_label"]
     groups = model_df["order_id"]
     X_train, X_test, y_train, _, _, _ = split_by_order(X, y, groups)
 
-    track_b = build_track_b_pipeline(X_train)
+    track_b = build_corrected_track_pipeline(X_train, "B")
     track_b.fit(X_train, y_train)
-    track_c = build_track_c_pipeline(X_train, quantile=quantile)
+    track_c = build_corrected_track_pipeline(X_train, "C", quantile=quantile)
     track_c.fit(X_train, model_df.loc[X_train.index, "delivery_days"])
 
     positive_proba = track_b.predict_proba(X_test)[:, 1]
@@ -750,7 +765,7 @@ def make_recommendation_examples(
     recommended = np.maximum(X_test["expected_delivery_days"].to_numpy(), np.ceil(pred_delivery))
     adjustment = recommended - X_test["expected_delivery_days"].to_numpy()
 
-    examples = X_test.copy()
+    examples = track_b.named_steps["train_only_imputation"].transform(X_test)
     examples["review_risk_probability"] = risk_proba
     examples["predicted_delivery_days_p90"] = pred_delivery
     examples["recommended_expected_days"] = recommended

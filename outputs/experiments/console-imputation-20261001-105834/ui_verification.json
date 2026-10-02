@@ -1,0 +1,23 @@
+{
+  "streamlit_execution": "passed",
+  "distance_input_60km": "Short-Haul",
+  "item_selection": "passed",
+  "final_output_assembly_reused_fitted_models": "passed",
+  "initial_metrics": [
+    {
+      "label": "현재 예상 배송일",
+      "value": "40일"
+    },
+    {
+      "label": "Track C 예상 배송일 검토값",
+      "value": "40일"
+    },
+    {
+      "label": "90% 분위수 배송 소요일",
+      "value": "16.9일"
+    }
+  ],
+  "browser_visual_check": "not_verified: computer-use Accessibility/Screen Recording permission pending",
+  "model_retraining_during_ui_check": false,
+  "scope": "Default 90% quantile; existing fitted models reused. Quantile slider retraining not exercised."
+}

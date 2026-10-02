@@ -44,7 +44,7 @@ def main() -> None:
     examples.to_csv(TABLE_DIR / "track_c_recommendation_examples.csv", index=False)
 
     summary = {
-        "preprocessing_scope": {"track_a_b": "train_only_pipeline", "track_c_and_ui": "legacy_not_migrated"},
+        "preprocessing_scope": {"track_a_b": "train_only_pipeline", "track_c_and_ui": "train_only_pipeline"},
         "selected_label_policy": DEFAULT_LABEL_POLICY,
         "selected_label_policy_description": LABEL_POLICY_DESCRIPTIONS[DEFAULT_LABEL_POLICY],
         "selected_track_a_model": "LightGBM",
