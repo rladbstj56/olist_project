@@ -19,5 +19,16 @@
   ],
   "browser_visual_check": "not_verified: computer-use Accessibility/Screen Recording permission pending",
   "model_retraining_during_ui_check": false,
-  "scope": "Default 90% quantile; existing fitted models reused. Quantile slider retraining not exercised."
+  "scope": "Default 90% quantile; existing fitted models reused. Quantile slider retraining not exercised.",
+  "browser_followup_20261003": {
+    "status": "verified_default_view_and_distance_input",
+    "method": "native Chrome guest via Computer Use",
+    "initial_risk_percent": 47.7,
+    "initial_delivery_days": 16.9,
+    "distance_60km_risk_percent": 47.6,
+    "distance_60km_delivery_days": 16.4,
+    "high_risk_orders": 6923,
+    "additional_ui_startup_model_fits": 2,
+    "limitations": "Small-window metric label ellipsis; horizontally scrolling tables; other quantile settings not exercised."
+  }
 }

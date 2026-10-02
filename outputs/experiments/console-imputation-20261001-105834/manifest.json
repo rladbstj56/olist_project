@@ -34,7 +34,7 @@
     "metrics.csv": "35c2a1187cca0c97e32222e7f3fdfb3fb8eff62c96fac797b9bde3d03ead233f",
     "verify_ui.py": "6976ed1116ea824418db03e4a6b60dfc254af5c666069fb6db597a32cf375560",
     "split_assignments.csv": "211c5c4ae0025df0ce4f01ffe0e0a640cf2bb21e8ed9902d7836d21ed85ddc6d",
-    "ui_verification.json": "24bd1cdd99b48ea2f5511370a70e90ba9754ff2c57ccc0205699d7e459fe82b4"
+    "ui_verification.json": "a6193f477e9eac0ea237e7311efcb9326ac509c173d8266372919275bdd6d268"
   },
   "final_code_sha256": {
     "src/olist_delivery_models.py": "1c89de84a09798877e74526655da177e1b40285fa29458b94c71fb7695ebeb0d",
@@ -42,5 +42,6 @@
     "streamlit_app.py": "2367a104aab1285fc22ee90fca346a0ff9dbffa9761b98afd47b5c1905800d15",
     "scripts/audit_console_imputation.py": "b87c5c95caa12ed815e688f239811eb3c66a411820f91ba60ddfbfe97e407bcb"
   },
-  "post_run_change": "Preserve original display metadata in train_console_artifacts; no training or prediction changes. Final assembly and UI verified with cached fitted models."
+  "post_run_change": "Preserve original display metadata in train_console_artifacts; no training or prediction changes. Final assembly and UI verified with cached fitted models.",
+  "followup": "2026-10-03 native Chrome check appended to ui_verification.json; original comparison predictions unchanged."
 }
