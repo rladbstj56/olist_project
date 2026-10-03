@@ -1,0 +1,41 @@
+{
+  "fit_count": 0,
+  "new_predictions": 0,
+  "threshold_changed": false,
+  "method": "saved scores; restored train-only imputation statistics; exact matching on other 21 pre-encoder inputs within order",
+  "limitations": [
+    "not proof of item sequence causing dissatisfaction",
+    "not estimate of retraining without sequence",
+    "same-input pairs are a selected subset and may repeat first item",
+    "historical encoder/model binary not saved"
+  ],
+  "positive_threshold": 0.5599999999999998,
+  "input_sha256": {
+    "data/processed/ml_data.csv": "1035458750d9c3f63c0e7f45a4bc6b42c5867d7daab81530d896c8bb46b66c3e",
+    "data/processed/merged_data.csv": "7044a75c24cdbe2b43b6bbe27b3ce0f711384918326635093934a4a2419f5eef",
+    "data/raw/olist_order_reviews_dataset.csv": "012b61c7593e34f51fa614efdf802b9c7056ce6aae5307ddb93236e7cfc797d7",
+    "scripts/audit_temporal_split.py": "f6dfb3a60acd41a1a0f063a8b312c01e1be3429973392b213a310247171bb79f",
+    "outputs/experiments/temporal-validation-20261003-202427/validation_thresholds.csv": "9dd3d388d350b315eb3163b5226434822405c5c1b4d38737bd706fc168819b2b",
+    "outputs/experiments/temporal-validation-20261003-202427/monthly_metrics.csv": "03c35869cd0ea9d2f931d143d7584df8dfd24fd22e996c21f4f331321683d827",
+    "outputs/experiments/temporal-validation-20261003-202427/predictions.csv": "f8a198366085ddfb28b3fe1859b709ac835f46a3f4e30c87777b4282ee362aaf",
+    "outputs/experiments/temporal-validation-20261003-202427/metrics.csv": "dcec5c6babdb01188f7a8f9b612dce3d65c9e2545fedc9213ec90fa6ad6c9160",
+    "outputs/experiments/temporal-validation-20261003-202427/order_predictions.csv": "09ef7d34587bec241d6990113b086769ca3f5cccb473804cb23a939b0cc2b610",
+    "outputs/experiments/temporal-validation-20261003-202427/assignments.csv": "d29dba164ce039b6691a45940e93baaabd4af497200d8baaf8825d0c16e6e129",
+    "outputs/experiments/temporal-validation-20261003-202427/item_count_metrics.csv": "3d8c9d45fbf5cb97f28870b123d9810a5cbf92f7adca47c4d84740592f939db7",
+    "outputs/experiments/temporal-validation-20261003-202427/manifest.json": "9e72647cd8c3d77c62eaa779e2a3c4974b1cdb8d015638d40cd92b40de2df294",
+    "outputs/experiments/temporal-validation-20261003-202427/imputation_statistics.json": "10a72c909b6f1d809fe431d53f558396c1630384902719d22091cc17ff4eb3c6",
+    "outputs/experiments/temporal-validation-20261003-202427/cohort_profile.csv": "e0bdf8e7b9d3f1ddb569f2c549539901c451b1dcc8de7b053530c451338f57d4"
+  },
+  "code_sha256": "270a474c69b529073a227d6fd03fda5f18aaaa7e8de40cd95311066274360c36",
+  "head": "b1e7f4b8738ad475e6d77628dc510e58193b4e52",
+  "output_sha256": {
+    "aggregation_effect.csv": "644669581f7d65fce647835409c37978c03d8397a518e36f3fd5d1ea309d1f4b",
+    "input_medians.csv": "7349acb96a05017f19d261c15fe50f527c99764636510070b6fa1e3ebb16c353",
+    "order_composition.csv": "53e1a1251765aeceac0b6e68527f4124a72e4994a0c2af00632f4a48767f4db0",
+    "paired_scores.csv": "45a45706e3db1512a685f8a9e3de84a3656fdc7030102e3b34971e6ced9ade7e",
+    "paired_summary.csv": "c977bdb916ee652268cd5d0faff731c5884abcfcc0c5d88a47e130792edcef88",
+    "sequence_scores.csv": "db2621e2a08744b84c1f05ba52da52544f269496df87c68bf9911cb91152ab2e",
+    "training_weight_profile.csv": "14b88d7a3e3434b33127e0589ef94a2bdd46b64f16edb895c1d2fce30f61e92d",
+    "within_order_feature_differences.csv": "864b8fc1dd66028e313c5f78a45761bb4fad979a9203d54642ab8150ae3a1735"
+  }
+}
