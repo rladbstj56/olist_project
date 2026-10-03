@@ -1,0 +1,141 @@
+{
+  "status": "complete",
+  "fit_count": 1,
+  "track": "B",
+  "periods": [
+    {
+      "split": "train",
+      "purchase_start_inclusive": null,
+      "purchase_end_exclusive": "2018-01-01",
+      "available_before": "2018-01-01",
+      "orders_before_time_checks": 39634,
+      "invalid_time_orders": 0,
+      "pending_orders": 2780,
+      "eligible_orders": 36854,
+      "eligible_item_rows": 42057,
+      "risk_orders": 4466,
+      "risk_order_rate": 0.12118087588864167
+    },
+    {
+      "split": "valid",
+      "purchase_start_inclusive": "2018-01-01",
+      "purchase_end_exclusive": "2018-04-01",
+      "available_before": "2018-04-01",
+      "orders_before_time_checks": 18565,
+      "invalid_time_orders": 0,
+      "pending_orders": 3944,
+      "eligible_orders": 14621,
+      "eligible_item_rows": 16679,
+      "risk_orders": 2270,
+      "risk_order_rate": 0.15525613843102387
+    },
+    {
+      "split": "test",
+      "purchase_start_inclusive": "2018-04-01",
+      "purchase_end_exclusive": "2018-08-01",
+      "available_before": "2018-11-01",
+      "orders_before_time_checks": 23785,
+      "invalid_time_orders": 2,
+      "pending_orders": 0,
+      "eligible_orders": 23783,
+      "eligible_item_rows": 27191,
+      "risk_orders": 2715,
+      "risk_order_rate": 0.11415717108859269
+    }
+  ],
+  "positive_threshold": 0.5599999999999998,
+  "risk_threshold": 0.44000000000000017,
+  "threshold_selection": "validation item rows only; existing minimum abs(risk_recall-balanced_acc) rule",
+  "order_rule": "max risk = min positive probability; mean risk is sensitivity only",
+  "feature_columns": [
+    "order_item_id",
+    "price",
+    "freight_value",
+    "freight_ratio",
+    "total_price",
+    "product_weight_g",
+    "product_length_cm",
+    "product_height_cm",
+    "product_width_cm",
+    "order_purchase_dayofweek",
+    "order_purchase_month",
+    "expected_delivery_days",
+    "main_category",
+    "sub_category",
+    "distance_km",
+    "distance_cat",
+    "cross_state",
+    "is_sp_customer",
+    "is_sp_seller",
+    "sp_route_type",
+    "sp_route_type_customer",
+    "sp_route_type_seller"
+  ],
+  "classifier_params": {
+    "boosting_type": "gbdt",
+    "class_weight": "balanced",
+    "colsample_bytree": 0.5028265220878869,
+    "importance_type": "split",
+    "learning_rate": 0.011153121252070788,
+    "max_depth": 5,
+    "min_child_samples": 47,
+    "min_child_weight": 0.001,
+    "min_split_gain": 0.0,
+    "n_estimators": 800,
+    "n_jobs": 1,
+    "num_leaves": 29,
+    "objective": null,
+    "random_state": 42,
+    "reg_alpha": 0.0,
+    "reg_lambda": 0.0,
+    "subsample": 1.0,
+    "subsample_for_bin": 200000,
+    "subsample_freq": 0,
+    "verbose": -1
+  },
+  "input_sha256": {
+    "data/processed/ml_data.csv": "1035458750d9c3f63c0e7f45a4bc6b42c5867d7daab81530d896c8bb46b66c3e",
+    "data/processed/merged_data.csv": "7044a75c24cdbe2b43b6bbe27b3ce0f711384918326635093934a4a2419f5eef",
+    "data/raw/olist_order_reviews_dataset.csv": "012b61c7593e34f51fa614efdf802b9c7056ce6aae5307ddb93236e7cfc797d7",
+    "scripts/audit_temporal_split.py": "f6dfb3a60acd41a1a0f063a8b312c01e1be3429973392b213a310247171bb79f"
+  },
+  "design_assignment_sha256": "37f1ff01b569b9523bdc5ca11b6b87268b2bff90666f8e0c5ca35b0bbb7c91a8",
+  "code_sha256": {
+    "scripts/audit_temporal_model.py": "8fef234b37e48de79a998e43eb2334a113ebc3d9d81c8f38bececf5f43fc4930",
+    "src/olist_delivery_models.py": "1c89de84a09798877e74526655da177e1b40285fa29458b94c71fb7695ebeb0d",
+    "src/olist_imputation.py": "865eadd69fefa9739ca95df9775ce5e64127c1183219596aa61a699daccd78f5"
+  },
+  "head_before_run": "030898d8de1d2901f35ee60c24e3dcf57bdc4277",
+  "versions": {
+    "python": "3.9.6",
+    "numpy": "2.0.2",
+    "pandas": "2.3.3",
+    "sklearn": "1.6.1",
+    "lightgbm": "4.6.0"
+  },
+  "checks": [
+    "design assignments identical",
+    "order intersections zero",
+    "eligible counts identical",
+    "saved-score metric roundtrip",
+    "input hashes unchanged"
+  ],
+  "limitations": [
+    "final completed/review-non3 cohort is retrospective",
+    "historical feature availability unverified",
+    "availability uses recorded timestamp proxy",
+    "no untouched new dataset",
+    "no model binary saved; scores and fitted imputation statistics saved"
+  ],
+  "output_sha256": {
+    "assignments.csv": "d29dba164ce039b6691a45940e93baaabd4af497200d8baaf8825d0c16e6e129",
+    "cohort_profile.csv": "e0bdf8e7b9d3f1ddb569f2c549539901c451b1dcc8de7b053530c451338f57d4",
+    "imputation_statistics.json": "10a72c909b6f1d809fe431d53f558396c1630384902719d22091cc17ff4eb3c6",
+    "item_count_metrics.csv": "3d8c9d45fbf5cb97f28870b123d9810a5cbf92f7adca47c4d84740592f939db7",
+    "metrics.csv": "dcec5c6babdb01188f7a8f9b612dce3d65c9e2545fedc9213ec90fa6ad6c9160",
+    "monthly_metrics.csv": "03c35869cd0ea9d2f931d143d7584df8dfd24fd22e996c21f4f331321683d827",
+    "order_predictions.csv": "09ef7d34587bec241d6990113b086769ca3f5cccb473804cb23a939b0cc2b610",
+    "predictions.csv": "f8a198366085ddfb28b3fe1859b709ac835f46a3f4e30c87777b4282ee362aaf",
+    "validation_thresholds.csv": "9dd3d388d350b315eb3163b5226434822405c5c1b4d38737bd706fc168819b2b"
+  }
+}

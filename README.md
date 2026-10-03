@@ -1,6 +1,6 @@
 # Olist CS 리스크 분석 및 낮은 만족도 리뷰 조기 탐지
 
-처음 읽는 분을 위한 [전체 작업 해설서](docs/olist-project-walkthrough.md)와 [시간 분할 검증 설계](docs/temporal-validation-plan.md)를 제공합니다.
+처음 읽는 분을 위한 [전체 작업 해설서](docs/olist-project-walkthrough.md)와 [시간 분할 검증 설계·실행](docs/temporal-validation-plan.md)를 제공합니다. 2026-10-03 별도 시간 검증은 주문 최대 점수 기준 정밀도13.80%·재현율64.24%이며 확인 대상 비율53.14%와 복수 아이템 주문 선별 한계를 확인했습니다. [상세 결과](docs/modeling_decision_log.md#30-시간-분할-track-b-1회-학습과-상품-수별-진단--2026-10-03)는 아래 과거 무작위 분할 성능과 평가 조건이 다르며 기존 UI에 적용하지 않았습니다.
 
 Brazilian Olist e-commerce 공개 데이터를 기반으로, 배송 지연과 고객 리뷰의 관계를 분석하고 낮은 만족도 리뷰 가능성을 사전에 탐지하는 운영 분석 프로젝트입니다.
 
