@@ -1,0 +1,32 @@
+{
+  "fit_count": 0,
+  "new_predictions": 0,
+  "split": "valid",
+  "orders": 14621,
+  "risk_orders": 2270,
+  "aggregation": "maximum item risk = minimum positive score",
+  "capacity_policy": "ceil(n*f), f=5/10/20/30/40/50%; baseline historical count 6553 supplemental",
+  "tie_policy": "ascending order_id, label-independent; sensitivity range and random-tie expectation reported",
+  "input_sha256": {
+    "outputs/experiments/temporal-validation-20261003-202427/manifest.json": "9e72647cd8c3d77c62eaa779e2a3c4974b1cdb8d015638d40cd92b40de2df294",
+    "outputs/experiments/temporal-validation-20261003-202427/predictions.csv": "f8a198366085ddfb28b3fe1859b709ac835f46a3f4e30c87777b4282ee362aaf",
+    "outputs/experiments/without-sequence-20261003-204301/manifest.json": "34e2923e711ac385b95ab2354922152c2f1fa93097bc89bce138ea4f9c8a07db",
+    "outputs/experiments/without-sequence-20261003-204301/predictions.csv": "9ba4a0abfd578bf72a95c1735e6fbc11f5122596bd0bc327e02e8d1eb6c80001",
+    "outputs/experiments/order-weighted-20261004-230716/manifest.json": "e08935f77d3cd9bfa25e8f062b1d5649e70b1bd03b79cef31247e871b28a5252",
+    "outputs/experiments/order-weighted-20261004-230716/predictions.csv": "8d69ce63860c2458a274420d956262811015988aba51f15dac8d8aa0f80ddd52"
+  },
+  "code_sha256": "28cdf68d734fa22fcefaa87c336af2393b6dae5549054fe6488ba6c5b957d95d",
+  "head": "cba8c9b9f5a529801ddb572834be510fb09c6ec0",
+  "limitations": [
+    "validation repeatedly inspected; not final independent confirmation",
+    "capacity fractions are scenarios, not chosen operational quotas",
+    "no inference on real-world intervention benefit",
+    "no confidence intervals or significance test",
+    "ranking does not verify permutation invariance"
+  ],
+  "output_sha256": {
+    "capacity_metrics.csv": "75a8c1c80dff7fbaae2fcc575e999a36a5119e2e8af917b5adb2516ee9f40b75",
+    "comparison.csv": "42a610f66406f655bb6d1f5ef2cf67fe6bb33d11c44dec701fcce46a760c1675",
+    "validation_order_scores.csv": "dd425f3fcdab214e8f5ae8e3af5e1a75db52972d7e6944914929d6709e9a8722"
+  }
+}
