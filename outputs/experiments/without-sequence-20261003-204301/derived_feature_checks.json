@@ -1,0 +1,7 @@
+{
+  "total_price": true,
+  "freight_ratio": true,
+  "sp_route_type": true,
+  "sp_route_type_customer": true,
+  "sp_route_type_seller": true
+}

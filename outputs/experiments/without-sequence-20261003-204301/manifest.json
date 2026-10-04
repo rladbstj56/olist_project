@@ -1,0 +1,110 @@
+{
+  "fit_count": 1,
+  "track": "B",
+  "removed_model_features": [
+    "order_item_id"
+  ],
+  "retained_feature_columns": [
+    "price",
+    "freight_value",
+    "freight_ratio",
+    "total_price",
+    "product_weight_g",
+    "product_length_cm",
+    "product_height_cm",
+    "product_width_cm",
+    "order_purchase_dayofweek",
+    "order_purchase_month",
+    "expected_delivery_days",
+    "main_category",
+    "sub_category",
+    "distance_km",
+    "distance_cat",
+    "cross_state",
+    "is_sp_customer",
+    "is_sp_seller",
+    "sp_route_type",
+    "sp_route_type_customer",
+    "sp_route_type_seller"
+  ],
+  "key_columns_preserved": [
+    "order_id",
+    "order_item_id"
+  ],
+  "training_rows": 42057,
+  "baseline_positive_threshold": 0.5599999999999998,
+  "selected_positive_threshold": 0.5499999999999998,
+  "classifier_params": {
+    "boosting_type": "gbdt",
+    "class_weight": "balanced",
+    "colsample_bytree": 0.5028265220878869,
+    "importance_type": "split",
+    "learning_rate": 0.011153121252070788,
+    "max_depth": 5,
+    "min_child_samples": 47,
+    "min_child_weight": 0.001,
+    "min_split_gain": 0.0,
+    "n_estimators": 800,
+    "n_jobs": 1,
+    "num_leaves": 29,
+    "objective": null,
+    "random_state": 42,
+    "reg_alpha": 0.0,
+    "reg_lambda": 0.0,
+    "subsample": 1.0,
+    "subsample_for_bin": 200000,
+    "subsample_freq": 0,
+    "verbose": -1
+  },
+  "versions": {
+    "python": "3.9.6",
+    "numpy": "2.0.2",
+    "pandas": "2.3.3",
+    "sklearn": "1.6.1",
+    "lightgbm": "4.6.0"
+  },
+  "input_sha256": {
+    "data/processed/ml_data.csv": "1035458750d9c3f63c0e7f45a4bc6b42c5867d7daab81530d896c8bb46b66c3e",
+    "data/processed/merged_data.csv": "7044a75c24cdbe2b43b6bbe27b3ce0f711384918326635093934a4a2419f5eef",
+    "data/raw/olist_order_reviews_dataset.csv": "012b61c7593e34f51fa614efdf802b9c7056ce6aae5307ddb93236e7cfc797d7",
+    "scripts/audit_temporal_split.py": "f6dfb3a60acd41a1a0f063a8b312c01e1be3429973392b213a310247171bb79f",
+    "outputs/experiments/temporal-validation-20261003-202427/validation_thresholds.csv": "9dd3d388d350b315eb3163b5226434822405c5c1b4d38737bd706fc168819b2b",
+    "outputs/experiments/temporal-validation-20261003-202427/monthly_metrics.csv": "03c35869cd0ea9d2f931d143d7584df8dfd24fd22e996c21f4f331321683d827",
+    "outputs/experiments/temporal-validation-20261003-202427/predictions.csv": "f8a198366085ddfb28b3fe1859b709ac835f46a3f4e30c87777b4282ee362aaf",
+    "outputs/experiments/temporal-validation-20261003-202427/metrics.csv": "dcec5c6babdb01188f7a8f9b612dce3d65c9e2545fedc9213ec90fa6ad6c9160",
+    "outputs/experiments/temporal-validation-20261003-202427/order_predictions.csv": "09ef7d34587bec241d6990113b086769ca3f5cccb473804cb23a939b0cc2b610",
+    "outputs/experiments/temporal-validation-20261003-202427/assignments.csv": "d29dba164ce039b6691a45940e93baaabd4af497200d8baaf8825d0c16e6e129",
+    "outputs/experiments/temporal-validation-20261003-202427/item_count_metrics.csv": "3d8c9d45fbf5cb97f28870b123d9810a5cbf92f7adca47c4d84740592f939db7",
+    "outputs/experiments/temporal-validation-20261003-202427/manifest.json": "9e72647cd8c3d77c62eaa779e2a3c4974b1cdb8d015638d40cd92b40de2df294",
+    "outputs/experiments/temporal-validation-20261003-202427/imputation_statistics.json": "10a72c909b6f1d809fe431d53f558396c1630384902719d22091cc17ff4eb3c6",
+    "outputs/experiments/temporal-validation-20261003-202427/cohort_profile.csv": "e0bdf8e7b9d3f1ddb569f2c549539901c451b1dcc8de7b053530c451338f57d4"
+  },
+  "source_sha256": "2058f5998128d80fc7512abe6f7e707a743900232b502791c86be96fb3832631",
+  "head_before_run": "aec3068b56a3318de453c1e83ac598841df8bc05",
+  "checks": [
+    "same rows/order keys/labels",
+    "same model parameters and package versions",
+    "same fitted imputation statistics",
+    "encoder uses exactly 21 specified columns",
+    "sequence perturbation invariant on 100 valid rows",
+    "saved-score metrics roundtrip",
+    "baseline/input hashes unchanged"
+  ],
+  "limitations": [
+    "test already inspected: diagnostic comparison not untouched confirmation",
+    "all previous temporal cohort limitations remain",
+    "no automatic production adoption",
+    "derived features are not proven useless",
+    "feature subsampling may change after column removal despite same seed"
+  ],
+  "output_sha256": {
+    "derived_feature_checks.json": "345dab83c5389aaa747ca542f97aecde2d551773e5e3e7104f05b997024dadbb",
+    "item_count_metrics.csv": "88f45c734bf8adf370c7317316bb433c5bede882d830390d3422d62970663317",
+    "metrics.csv": "1211687a400197f9033e65aaeb1560b2188479cf264313731d0c5be7869f3053",
+    "monthly_metrics.csv": "e1de1afa42c80c194e448ef0a80c9cb83aa988e1c2b37316570bdc582db9ea5e",
+    "paired_predictions.csv": "1fb456a022b2ffda64013deeb660678426b65a90be7e14544e55cc31f8c6baa0",
+    "predictions.csv": "9ba4a0abfd578bf72a95c1735e6fbc11f5122596bd0bc327e02e8d1eb6c80001",
+    "training_feature_audit.csv": "380db16d3487da27f8aac0b652f534b46ea4f3dfcaf1d30e423dffe88b5ad070",
+    "validation_thresholds.csv": "3b9f03db737509d83009117aa2ae9c9d68390fbfb8b7b7361ce290164ad02c10"
+  }
+}
