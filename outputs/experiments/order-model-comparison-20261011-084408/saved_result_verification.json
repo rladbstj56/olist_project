@@ -1,0 +1,51 @@
+{
+  "classifier_fit_count": 0,
+  "checks": [
+    {
+      "variant": "O39",
+      "split": "test",
+      "ap_independent_rank_sum": 0.20347601226788176,
+      "confusion": [
+        11007,
+        10061,
+        1079,
+        1636
+      ]
+    },
+    {
+      "variant": "O39",
+      "split": "valid",
+      "ap_independent_rank_sum": 0.28105179085554993,
+      "confusion": [
+        6915,
+        5436,
+        947,
+        1323
+      ]
+    },
+    {
+      "variant": "O40",
+      "split": "test",
+      "ap_independent_rank_sum": 0.21189196119519463,
+      "confusion": [
+        12071,
+        8997,
+        1151,
+        1564
+      ]
+    },
+    {
+      "variant": "O40",
+      "split": "valid",
+      "ap_independent_rank_sum": 0.28809176338490894,
+      "confusion": [
+        6971,
+        5380,
+        953,
+        1317
+      ]
+    }
+  ],
+  "restore_comparison": "both restored classifiers exactly match original in-memory validation probabilities saved before serialization",
+  "method": "AP independently summed by tied risk-score groups; confusion counts recomputed from saved scores and strict thresholds"
+}
