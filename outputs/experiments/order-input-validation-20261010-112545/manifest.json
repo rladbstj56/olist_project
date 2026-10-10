@@ -1,0 +1,79 @@
+{
+  "status": "input_transform_complete_no_classifier_training",
+  "classifier_fit_count": 0,
+  "preprocessing_fit_count": 1,
+  "splits": [
+    {
+      "split": "train",
+      "orders": 36854,
+      "item_rows": 42057,
+      "features": 39,
+      "risk_orders": 4466,
+      "missing_cells": 0,
+      "shuffle_renumber_idrename_restore_batch_checks": "exact equality"
+    },
+    {
+      "split": "valid",
+      "orders": 14621,
+      "item_rows": 16679,
+      "features": 39,
+      "risk_orders": 2270,
+      "missing_cells": 0,
+      "shuffle_renumber_idrename_restore_batch_checks": "exact equality"
+    },
+    {
+      "split": "test",
+      "orders": 23783,
+      "item_rows": 27191,
+      "features": 39,
+      "risk_orders": 2715,
+      "missing_cells": 0,
+      "shuffle_renumber_idrename_restore_batch_checks": "exact equality"
+    }
+  ],
+  "raw_item_key_difference": 0,
+  "model_raw_review_mismatches": 0,
+  "input_sha256": {
+    "data/processed/ml_data.csv": "1035458750d9c3f63c0e7f45a4bc6b42c5867d7daab81530d896c8bb46b66c3e",
+    "data/processed/merged_data.csv": "7044a75c24cdbe2b43b6bbe27b3ce0f711384918326635093934a4a2419f5eef",
+    "data/raw/olist_order_items_dataset.csv": "0bc4d068c4fe38cbb01bd90e8746e3c613fe7b4baef75fab7b0e329701c3e279",
+    "outputs/experiments/temporal-validation-20261003-202427/assignments.csv": "d29dba164ce039b6691a45940e93baaabd4af497200d8baaf8825d0c16e6e129",
+    "outputs/experiments/temporal-validation-20261003-202427/imputation_statistics.json": "10a72c909b6f1d809fe431d53f558396c1630384902719d22091cc17ff4eb3c6"
+  },
+  "source_sha256": {
+    "src/olist_order_features.py": "e38994fe99e5364fa069dc6f24677a44bb7c63acfc86e509062ca997c79aab58",
+    "src/olist_imputation.py": "865eadd69fefa9739ca95df9775ce5e64127c1183219596aa61a699daccd78f5",
+    "src/olist_delivery_models.py": "1c89de84a09798877e74526655da177e1b40285fa29458b94c71fb7695ebeb0d",
+    "scripts/audit_order_inputs.py": "98940fa5227bab03e7907eee280fcda4750de8de177e553f9e2bac07b67c8544",
+    "tests/test_order_features.py": "984b61c80272d614dceb2950a2e40361a9a4c55ce6dcfd55f40540cce9b74306"
+  },
+  "head_before_run": "557e0d198e2f958fe86f3dbdfcc9c9765bd2e444",
+  "versions": {
+    "python": "3.9.6",
+    "pandas": "2.3.3",
+    "numpy": "2.0.2",
+    "sklearn": "1.6.1",
+    "joblib": "1.5.3"
+  },
+  "transformer_storage": "order_transformer.joblib local only (existing gitignore); hash recorded; restore verified",
+  "limitations": [
+    "classifier prediction invariance not run: no classifier trained",
+    "O40 not implemented/trained in this stage",
+    "transform requires all items of an order; coverage enforced by audit against source",
+    "historical availability/cohort limitations unchanged",
+    "category vocabulary size determines feature count; current frozen training has six categories"
+  ],
+  "output_sha256": {
+    "feature_schema.json": "e179630f57cd7a13eca34523b3bf29caff3d92cb1323b78c707d2ce3d7b52643",
+    "order_transformer.joblib": "c4eed4c086bd6cd995113885291f1d9188884f00215a253c910cd537c00412de",
+    "test_features.csv": "3afa4b02816a9e3b7a38ef0110943d249d84d9391f1b0fac329ded4ed0114c31",
+    "test_item_counts.csv": "765ed8d481f8dd2c2f5684b7415d3fc6f54072d3985ada35a7ac62616b40694d",
+    "test_labels.csv": "8cfa3cf0e8351221709d3bb089d17e7602d48373ca0796c890a0a7d006b1a1ef",
+    "train_features.csv": "9055989bbbf496372d2f546bb2a2dba9fbb2ab5ec444d8d4d4f0f6320e925404",
+    "train_item_counts.csv": "b7d7574b68397f75eff645814fd5cc54c9392ee91f7eafd0693dad79499ec4a0",
+    "train_labels.csv": "a2a393e1c6131e591799594dc607e3bdd37fcc9ef8c6f4c251af60307d3818f9",
+    "valid_features.csv": "8b484064dab61b2e7133c0359c711cf8bb21138db138c4d7abdd6c432e5d224e",
+    "valid_item_counts.csv": "87529820daa4f811932c3be143e988ffa558c5bf792e6fbf7321d3b89053c278",
+    "valid_labels.csv": "7b95a05c91672048658c31810affaeac2cc0328e59b5c18eb870f647fa07d9a4"
+  }
+}
