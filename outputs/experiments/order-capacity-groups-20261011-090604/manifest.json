@@ -1,0 +1,29 @@
+{
+  "fit_count": 0,
+  "new_predictions": 0,
+  "split": "valid",
+  "orders": 14621,
+  "risk_orders": 2270,
+  "input_sha256": {
+    "outputs/experiments/order-model-comparison-20261011-084408/validation_order_scores.csv": "5456f200a75841f76b59e634ad95b21248d2606adf079a578968c284da00709b",
+    "outputs/experiments/order-model-comparison-20261011-084408/validation_capacity_metrics.csv": "6d8ee35ccf437b8e294b97f1f2b2f0981c6b02177a4bd9b6369912e689189def",
+    "outputs/experiments/order-input-validation-20261010-112545/valid_features.csv": "8b484064dab61b2e7133c0359c711cf8bb21138db138c4d7abdd6c432e5d224e"
+  },
+  "source_sha256": "b674ea3fbddddd9b1f195a7b13944bd14ec32476fee54f8ed777760d19aaec14",
+  "head": "a6152d121f2558fa12b2d38b5bb2c8f4b0a85d85",
+  "policy": "global ceil(n*f), f=.05/.10/.20/.30/.40/.50; ascending positive score, then order_id; no subgroup quotas",
+  "checks": "all subgroup partitions sum to global counts; all 30 global TP counts match prior artifact; added and removed global counts equal; input hashes unchanged",
+  "limitations": [
+    "descriptive validation analysis; no causal conclusion or significance claim",
+    "validation repeatedly inspected",
+    "capacities not operationally selected",
+    "false positive means review4/5 under frozen label policy; not proof support contact would be unnecessary",
+    "item_count means item rows, not distinct products"
+  ],
+  "output_sha256": {
+    "group_deltas.csv": "77597343933064ee35cceffc2e98e4669fb61d032b43daabf802fda3b69cff78",
+    "group_metrics.csv": "3b10c8aa09c11afe2f0dd55fe519e054bc1a82f5662730959ddf1047de32e31c",
+    "selection_exchanges.csv": "9bdf13eefdcbdc62715957493c4afa658001b57ca428eaf17a407439e682315c",
+    "validation_ranks.csv": "a6415f21ed18c802292b520cdf6738d831dbaa4d2c08089f0e7d045f3c0b49b9"
+  }
+}
